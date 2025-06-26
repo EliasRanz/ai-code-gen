@@ -1,0 +1,54 @@
+# Binaries and executables
+user-service
+ai-generation-service
+ai-service
+api-gateway
+auth-service
+server
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Temporary files
+*.backup
+*.tmp
+*.log
+*.swp
+*.swo
+*.orig
+*~
+debug_test.go
+
+# Status/completion markdown files
+*_COMPLETE.md
+*_COMPLETED.md
+*_FIXED.md
+TODO_MASTER_LIST.md
+REMOVE_STUBS_NOW.md
+IMPLEMENTATION_STATUS.md
+
+# Frontend build artifacts
+web/.next/
+web/node_modules/
+web/out/
+web/dist/
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

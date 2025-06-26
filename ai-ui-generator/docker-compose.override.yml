@@ -1,0 +1,93 @@
+# Docker Compose override for development
+# This file extends docker-compose.yml for development-specific configurations
+
+version: '3.8'
+
+services:
+  # Development overrides
+  api-gateway:
+    build:
+      context: .
+      dockerfile: cmd/api-gateway/Dockerfile
+      target: builder  # Stop at builder stage for development
+    volumes:
+      - .:/app
+      - /app/bin  # Exclude bin directory
+    environment:
+      - LOG_LEVEL=debug
+      - HOT_RELOAD=true
+    command: ["go", "run", "./cmd/api-gateway"]
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: cmd/auth-service/Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - /app/bin
+    environment:
+      - LOG_LEVEL=debug
+      - HOT_RELOAD=true
+    command: ["go", "run", "./cmd/auth-service"]
+
+  user-service:
+    build:
+      context: .
+      dockerfile: cmd/user-service/Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - /app/bin
+    environment:
+      - LOG_LEVEL=debug
+      - HOT_RELOAD=true
+    command: ["go", "run", "./cmd/user-service"]
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: cmd/ai-service/Dockerfile
+      target: builder
+    volumes:
+      - .:/app
+      - /app/bin
+    environment:
+      - LOG_LEVEL=debug
+      - HOT_RELOAD=true
+    command: ["go", "run", "./cmd/ai-service"]
+
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      target: deps  # Stop at deps stage for development
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+    command: ["npm", "run", "dev"]
+    ports:
+      - "3000:3000"
+
+  # Development tools
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: ai-ui-generator-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - ai-ui-generator
+
+  # Hot reload for Go services (using air)
+  air:
+    image: cosmtrek/air:latest
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      - AIR_CONFIG_FILE=.air.toml

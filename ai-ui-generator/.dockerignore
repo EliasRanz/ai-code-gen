@@ -1,0 +1,62 @@
+# .dockerignore for all services
+# Git
+.git
+.gitignore
+README.md
+
+# Documentation
+*.md
+docs/
+
+# Development files
+.env
+.env.local
+.env.example
+.vscode/
+.idea/
+
+# Build artifacts
+bin/
+tmp/
+*.log
+
+# Test files
+*_test.go
+test/
+tests/
+coverage.out
+
+# Frontend specific
+web/node_modules/
+web/.next/
+web/out/
+web/.env.local
+web/coverage/
+
+# Go specific
+vendor/
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+*.swp
+*.swo
+*~
+
+# Dependencies (should be downloaded in container)
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp

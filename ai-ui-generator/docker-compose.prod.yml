@@ -1,0 +1,135 @@
+# Production Docker Compose
+version: '3.8'
+
+services:
+  # Use external services in production
+  api-gateway:
+    image: ghcr.io/your-org/ai-ui-generator-api-gateway:latest
+    container_name: ai-ui-generator-gateway-prod
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - AUTH_SERVICE_URL=http://auth-service:8081
+      - USER_SERVICE_URL=http://user-service:8082
+      - AI_SERVICE_URL=http://ai-service:8083
+      - CORS_ALLOWED_ORIGINS=https://your-domain.com
+      - RATE_LIMIT_REQUESTS=1000
+      - RATE_LIMIT_WINDOW=60s
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  auth-service:
+    image: ghcr.io/your-org/ai-ui-generator-auth-service:latest
+    container_name: ai-ui-generator-auth-prod
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRY=24h
+      - REFRESH_TOKEN_EXPIRY=168h
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  user-service:
+    image: ghcr.io/your-org/ai-ui-generator-user-service:latest
+    container_name: ai-ui-generator-user-prod
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  ai-service:
+    image: ghcr.io/your-org/ai-ui-generator-ai-service:latest
+    container_name: ai-ui-generator-ai-prod
+    ports:
+      - "8083:8083"
+    environment:
+      - PORT=8083
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - VLLM_URL=${VLLM_URL}
+      - LLM_MODEL=${LLM_MODEL}
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  frontend:
+    image: ghcr.io/your-org/ai-ui-generator-frontend:latest
+    container_name: ai-ui-generator-frontend-prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+networks:
+  default:
+    name: ai-ui-generator-prod
+    external: true
