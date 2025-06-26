@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/user"
 )
 
 // MockUserRepository for testing

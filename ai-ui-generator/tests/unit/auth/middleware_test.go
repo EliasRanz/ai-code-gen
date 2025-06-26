@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/ai-code-gen/ai-ui-generator/internal/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/user"
 )
 
 func TestJWTMiddleware(t *testing.T) {

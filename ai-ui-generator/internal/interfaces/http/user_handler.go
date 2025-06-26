@@ -7,9 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/application/user"
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
-	"github.com/ai-code-gen/ai-ui-generator/internal/infrastructure/observability"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/application/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/infrastructure/observability"
 )
 
 // UserHandler handles HTTP requests for user operations

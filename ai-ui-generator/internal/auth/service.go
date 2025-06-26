@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/user"
 	"golang.org/x/crypto/bcrypt"
 )
 

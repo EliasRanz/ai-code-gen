@@ -12,8 +12,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/auth"
-	"github.com/ai-code-gen/ai-ui-generator/internal/llm"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/auth"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/llm"
 )
 
 /*

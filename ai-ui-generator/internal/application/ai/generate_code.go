@@ -4,8 +4,8 @@ package ai
 import (
 	"context"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/ai"
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/ai"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
 )
 
 // GenerateCodeRequest represents a code generation request

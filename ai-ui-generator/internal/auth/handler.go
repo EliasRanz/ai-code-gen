@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
-	"github.com/ai-code-gen/ai-ui-generator/internal/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/user"
 )
 
 // Handler handles HTTP requests for authentication

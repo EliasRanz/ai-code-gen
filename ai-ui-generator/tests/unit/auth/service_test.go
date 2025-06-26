@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/ai-code-gen/ai-ui-generator/internal/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/user"
 	"golang.org/x/crypto/bcrypt"
 )
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/auth"
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/auth"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
 )
 
 // LogoutUseCase handles user logout business logic

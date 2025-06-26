@@ -6,9 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/application/auth"
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
-	"github.com/ai-code-gen/ai-ui-generator/internal/infrastructure/observability"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/application/auth"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/infrastructure/observability"
 )
 
 // AuthHandler handles HTTP requests for authentication operations

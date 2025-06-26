@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	pb "github.com/ai-code-gen/ai-ui-generator/api/proto/user"
+	pb "github.com/EliasRanz/ai-code-gen/ai-ui-generator/api/proto/user"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )

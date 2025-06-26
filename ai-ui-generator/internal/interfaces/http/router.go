@@ -9,8 +9,8 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/auth"
-	"github.com/ai-code-gen/ai-ui-generator/internal/infrastructure/observability"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/auth"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/infrastructure/observability"
 )
 
 // Router wraps gin.Engine with our application routes

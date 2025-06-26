@@ -4,7 +4,7 @@ package user
 import (
 	"context"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
 )
 
 // Repository defines user domain data access

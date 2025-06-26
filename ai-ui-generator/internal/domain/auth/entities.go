@@ -4,7 +4,7 @@ package auth
 import (
 	"time"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
 )
 
 // LoginRequest represents a login request

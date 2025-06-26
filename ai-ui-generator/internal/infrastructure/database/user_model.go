@@ -3,8 +3,8 @@ package database
 import (
 	"encoding/json"
 	"time"
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/user"
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
 )
 
 // UserModel represents the database model for users

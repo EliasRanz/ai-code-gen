@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/config"
-	"github.com/ai-code-gen/ai-ui-generator/internal/database"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/config"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/database"
 )
 
 func main() {

@@ -7,7 +7,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/config"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/config"
 )
 
 // NewConnection creates a new database connection

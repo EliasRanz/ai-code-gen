@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	pb "github.com/ai-code-gen/ai-ui-generator/api/proto/user"
+	pb "github.com/EliasRanz/ai-code-gen/ai-ui-generator/api/proto/user"
 )
 
 // GRPCServer implements the UserService gRPC interface

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/ai"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/ai"
 )
 
 // OpenAIService implements LLMService using OpenAI API

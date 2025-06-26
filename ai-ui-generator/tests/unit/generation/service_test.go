@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/auth"
-	"github.com/ai-code-gen/ai-ui-generator/internal/llm"
-	"github.com/ai-code-gen/ai-ui-generator/internal/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/auth"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/llm"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/user"
 )
 
 // MockRedisClient for testing

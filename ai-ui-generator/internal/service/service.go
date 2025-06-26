@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/config"
-	"github.com/ai-code-gen/ai-ui-generator/internal/observability"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/config"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/observability"
 	"github.com/rs/zerolog"
 )
 

@@ -2,7 +2,7 @@ package user
 
 import (
 	"github.com/gin-gonic/gin"
-	pb "github.com/ai-code-gen/ai-ui-generator/api/proto/user"
+	pb "github.com/EliasRanz/ai-code-gen/ai-ui-generator/api/proto/user"
 )
 
 // convertStatusStringToEnum converts a status string to protobuf enum

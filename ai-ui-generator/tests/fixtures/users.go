@@ -1,7 +1,7 @@
 package fixtures
 
 import (
-	pb "github.com/ai-code-gen/ai-ui-generator/api/proto/user"
+	pb "github.com/EliasRanz/ai-code-gen/ai-ui-generator/api/proto/user"
 )
 
 // MockUser returns a mock user for testing

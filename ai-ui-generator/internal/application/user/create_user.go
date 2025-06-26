@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/user"
 )
 
 // CreateUserUseCase handles user creation business logic

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/ai-code-gen/ai-ui-generator/internal/user"
-	pb "github.com/ai-code-gen/ai-ui-generator/api/proto/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/user"
+	pb "github.com/EliasRanz/ai-code-gen/ai-ui-generator/api/proto/user"
 )
 
 func setupAdminRouter(handler *Handler) *gin.Engine {

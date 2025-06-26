@@ -445,7 +445,7 @@ const file_api_proto_auth_proto_rawDesc = "" +
 	"\x05Login\x12\x12.auth.LoginRequest\x1a\x13.auth.LoginResponse\x123\n" +
 	"\x06Logout\x12\x13.auth.LogoutRequest\x1a\x14.auth.LogoutResponse\x12H\n" +
 	"\rValidateToken\x12\x1a.auth.ValidateTokenRequest\x1a\x1b.auth.ValidateTokenResponse\x12E\n" +
-	"\fRefreshToken\x12\x19.auth.RefreshTokenRequest\x1a\x1a.auth.RefreshTokenResponseB7Z5github.com/ai-code-gen/ai-ui-generator/api/proto/authb\x06proto3"
+	"\fRefreshToken\x12\x19.auth.RefreshTokenRequest\x1a\x1a.auth.RefreshTokenResponseB7Z5github.com/EliasRanz/ai-code-gen/ai-ui-generator/api/proto/authb\x06proto3"
 
 var (
 	file_api_proto_auth_proto_rawDescOnce sync.Once

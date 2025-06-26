@@ -1676,7 +1676,7 @@ const file_api_proto_user_proto_rawDesc = "" +
 	"\rUpdateProject\x12\x1a.user.UpdateProjectRequest\x1a\x1b.user.UpdateProjectResponse\x12H\n" +
 	"\rDeleteProject\x12\x1a.user.DeleteProjectRequest\x1a\x1b.user.DeleteProjectResponse\x12E\n" +
 	"\fListProjects\x12\x19.user.ListProjectsRequest\x1a\x1a.user.ListProjectsResponse\x12Q\n" +
-	"\x10ListUserProjects\x12\x1d.user.ListUserProjectsRequest\x1a\x1e.user.ListUserProjectsResponseB7Z5github.com/ai-code-gen/ai-ui-generator/api/proto/userb\x06proto3"
+	"\x10ListUserProjects\x12\x1d.user.ListUserProjectsRequest\x1a\x1e.user.ListUserProjectsResponseB7Z5github.com/EliasRanz/ai-code-gen/ai-ui-generator/api/proto/userb\x06proto3"
 
 var (
 	file_api_proto_user_proto_rawDescOnce sync.Once

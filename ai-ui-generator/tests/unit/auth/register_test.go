@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/user"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )

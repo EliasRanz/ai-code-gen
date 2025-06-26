@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	
-	"github.com/ai-code-gen/ai-ui-generator/internal/auth"
-	"github.com/ai-code-gen/ai-ui-generator/internal/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/auth"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/user"
 )
 
 // AuthMiddleware validates JWT tokens with full user context (for services with database access)

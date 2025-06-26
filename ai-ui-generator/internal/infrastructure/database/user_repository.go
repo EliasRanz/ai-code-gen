@@ -9,9 +9,9 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/user"
-	"github.com/ai-code-gen/ai-ui-generator/internal/infrastructure/config"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/user"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/infrastructure/config"
 )
 
 // PostgreSQLUserRepository implements the user.Repository interface using GORM

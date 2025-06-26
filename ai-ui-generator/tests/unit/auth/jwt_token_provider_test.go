@@ -3,7 +3,7 @@ package auth
 import (
 	"testing"
 
-	"github.com/ai-code-gen/ai-ui-generator/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/domain/common"
 )
 
 func TestJWTTokenProvider_GenerateAndValidateTokens(t *testing.T) {

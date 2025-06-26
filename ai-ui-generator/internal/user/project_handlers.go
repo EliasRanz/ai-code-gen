@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
-	pb "github.com/ai-code-gen/ai-ui-generator/api/proto/user"
+	pb "github.com/EliasRanz/ai-code-gen/ai-ui-generator/api/proto/user"
 )
 
 // CreateProjectHandler creates a new project
