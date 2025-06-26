@@ -14,10 +14,6 @@ type UserGRPCClient interface {
 	GetUser(userID string) (*pb.GetUserResponse, error)
 	ListUsers(page, limit int32, search string) (*pb.ListUsersResponse, error)
 	DeleteUser(userID string) (*pb.DeleteUserResponse, error)
-}
-
-// ProjectGRPCClient defines the interface for project-related gRPC client methods
-type ProjectGRPCClient interface {
 	CreateProject(req *pb.CreateProjectRequest) (*pb.CreateProjectResponse, error)
 	GetProject(projectID string) (*pb.GetProjectResponse, error)
 	UpdateProject(req *pb.UpdateProjectRequest) (*pb.UpdateProjectResponse, error)
@@ -26,17 +22,10 @@ type ProjectGRPCClient interface {
 	ListUserProjects(userID string, page, limit int32, status pb.ProjectStatus) (*pb.ListUserProjectsResponse, error)
 }
 
-// AdminGRPCClient defines the interface for admin-related gRPC client methods
-type AdminGRPCClient interface {
-	UserGRPCClient
-	ProjectGRPCClient
-	// Add admin-specific methods here if needed
-}
-
 // Global gRPC client - will be set by the main function
-var grpcClient AdminGRPCClient
+var grpcClient UserGRPCClient
 
 // SetGRPCClient sets the global gRPC client for handlers
-func SetGRPCClient(client AdminGRPCClient) {
+func SetGRPCClient(client UserGRPCClient) {
 	grpcClient = client
 }

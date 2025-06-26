@@ -2,7 +2,6 @@ package auth
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/config"
@@ -298,18 +297,6 @@ func ValidateTokenHandler(c *gin.Context) {
 	})
 }
 
-// isValidEmail checks if the email has a basic valid format
-func isValidEmail(email string) bool {
-	// Simple regex for demonstration (not RFC compliant)
-	if len(email) < 3 || len(email) > 254 {
-		return false
-	}
-	at := strings.Index(email, "@")
-	if at < 1 || at == len(email)-1 {
-		return false
-	}
-	return true
-}
 
 // GetUserHandler returns current user information
 func GetUserHandler(c *gin.Context) {
