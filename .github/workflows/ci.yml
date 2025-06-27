@@ -84,9 +84,9 @@ jobs:
         go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
     - name: Run Go security scan
-      uses: securecodewarrior/github-action-gosec@master
+      uses: securego/gosec@master
       with:
-        args: ./...
+        args: './...'
 
     - name: Run Frontend linting
       working-directory: ./web
