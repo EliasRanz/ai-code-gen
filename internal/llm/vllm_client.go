@@ -297,3 +297,34 @@ func (c *VLLMClient) processStreamResponse(ctx context.Context, body io.ReadClos
 func stringPtr(s string) *string {
 	return &s
 }
+
+// Close closes the VLLMClient connection
+func (c *VLLMClient) Close() error {
+	// VLLM client uses HTTP client which doesn't need explicit closing
+	// The HTTP client will be garbage collected
+	return nil
+}
+
+// GetModels returns available models from the VLLM service
+func (c *VLLMClient) GetModels(ctx context.Context) ([]Model, error) {
+	// TODO: Implement actual models endpoint call
+	// For now, return a default model
+	models := []Model{
+		{
+			ID:          "default",
+			Name:        "Default VLLM Model",
+			Description: "Default model served by VLLM",
+			Provider:    "VLLM",
+			MaxTokens:   4096,
+			CreatedAt:   time.Now(),
+		},
+	}
+	return models, nil
+}
+
+// Health checks if the VLLM service is healthy
+func (c *VLLMClient) Health(ctx context.Context) error {
+	// TODO: Implement actual health check endpoint
+	// For now, assume the service is healthy
+	return nil
+}
