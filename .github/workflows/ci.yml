@@ -56,21 +56,20 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: ai-ui-generator/web/package-lock.json
+        cache-dependency-path: web/package-lock.json
 
     - name: Install Go dependencies
-      working-directory: ./ai-ui-generator
       run: go mod download
 
     - name: Install Node.js dependencies
-      working-directory: ./ai-ui-generator/web
+      working-directory: ./web
       run: npm ci
 
     - name: Run Go linting
       uses: golangci/golangci-lint-action@v3
       with:
         version: latest
-        working-directory: ./ai-ui-generator
+        working-directory: .
 
     - name: Run Go tests
       env:
@@ -81,33 +80,32 @@ jobs:
         DB_PASSWORD: password
         REDIS_HOST: localhost
         REDIS_PORT: 6379
-      working-directory: ./ai-ui-generator
       run: |
         go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
     - name: Run Go security scan
       uses: securecodewarrior/github-action-gosec@master
       with:
-        args: ./ai-ui-generator/...
+        args: ./...
 
     - name: Run Frontend linting
-      working-directory: ./ai-ui-generator/web
+      working-directory: ./web
       run: |
         npm run lint
         npm run type-check
 
     - name: Run Frontend tests
-      working-directory: ./ai-ui-generator/web
+      working-directory: ./web
       run: npm test --if-present
 
     - name: Build Frontend
-      working-directory: ./ai-ui-generator/web
+      working-directory: ./web
       run: npm run build
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
       with:
-        file: ./ai-ui-generator/coverage.out
+        file: ./coverage.out
         flags: backend
 
   # Security Scanning
@@ -174,8 +172,8 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ${{ matrix.service == 'frontend' && './ai-ui-generator/web' || './ai-ui-generator' }}
-        dockerfile: ${{ matrix.service == 'frontend' && './ai-ui-generator/web/Dockerfile' || format('./ai-ui-generator/cmd/{0}/Dockerfile', matrix.service) }}
+        context: ${{ matrix.service == 'frontend' && './web' || '.' }}
+        dockerfile: ${{ matrix.service == 'frontend' && './web/Dockerfile' || format('./cmd/{0}/Dockerfile', matrix.service) }}
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
@@ -199,12 +197,11 @@ jobs:
 
     - name: Create test environment
       run: |
-        cp ai-ui-generator/.env.example ai-ui-generator/.env
-        cd ai-ui-generator && docker-compose -f docker-compose.yml up -d postgres redis
+        cp .env.example .env
+        docker-compose -f docker-compose.yml up -d postgres redis
         
     - name: Wait for services
       run: |
-        cd ai-ui-generator
         timeout 60 bash -c 'until docker-compose -f docker-compose.yml exec -T postgres pg_isready -U postgres; do sleep 2; done'
         timeout 60 bash -c 'until docker-compose -f docker-compose.yml exec -T redis redis-cli ping; do sleep 2; done'
 
@@ -220,7 +217,7 @@ jobs:
 
     - name: Cleanup
       if: always()
-      run: cd ai-ui-generator && docker-compose -f docker-compose.yml down -v
+      run: docker-compose -f docker-compose.yml down -v
 
   # Deploy to Staging
   deploy-staging:
