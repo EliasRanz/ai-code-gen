@@ -1,0 +1,183 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/EliasRanz/ai-code-gen/api/proto/user";
+
+service UserService {
+  // User management
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  
+  // Project management
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse);
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
+  rpc UpdateProject(UpdateProjectRequest) returns (UpdateProjectResponse);
+  rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+  rpc ListUserProjects(ListUserProjectsRequest) returns (ListUserProjectsResponse);
+}
+
+// User messages
+message User {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string avatar_url = 4;
+  repeated string roles = 5;
+  bool is_active = 6;
+  bool email_verified = 7;
+  int64 created_at = 8;
+  int64 updated_at = 9;
+  int64 last_login_at = 10;
+}
+
+// Project messages
+message Project {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string user_id = 4;
+  ProjectStatus status = 5;
+  repeated string tags = 6;
+  string config = 7; // JSON configuration
+  int64 created_at = 8;
+  int64 updated_at = 9;
+}
+
+enum ProjectStatus {
+  PROJECT_STATUS_DRAFT = 0;
+  PROJECT_STATUS_ACTIVE = 1;
+  PROJECT_STATUS_COMPLETED = 2;
+  PROJECT_STATUS_ARCHIVED = 3;
+}
+
+// User CRUD operations
+message CreateUserRequest {
+  string email = 1;
+  string name = 2;
+  string avatar_url = 3;
+  repeated string roles = 4;
+}
+
+message CreateUserResponse {
+  User user = 1;
+  string error = 2;
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+  string error = 2;
+}
+
+message UpdateUserRequest {
+  string id = 1;
+  string name = 2;
+  string avatar_url = 3;
+  repeated string roles = 4;
+}
+
+message UpdateUserResponse {
+  User user = 1;
+  string error = 2;
+}
+
+message DeleteUserRequest {
+  string id = 1;
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message ListUsersRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string search = 3;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  int32 total = 2;
+  string error = 3;
+}
+
+// Project CRUD operations
+message CreateProjectRequest {
+  string name = 1;
+  string description = 2;
+  string user_id = 3;
+  repeated string tags = 4;
+  string config = 5;
+}
+
+message CreateProjectResponse {
+  Project project = 1;
+  string error = 2;
+}
+
+message GetProjectRequest {
+  string id = 1;
+}
+
+message GetProjectResponse {
+  Project project = 1;
+  string error = 2;
+}
+
+message UpdateProjectRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  ProjectStatus status = 4;
+  repeated string tags = 5;
+  string config = 6;
+}
+
+message UpdateProjectResponse {
+  Project project = 1;
+  string error = 2;
+}
+
+message DeleteProjectRequest {
+  string id = 1;
+}
+
+message DeleteProjectResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message ListProjectsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string search = 3;
+  ProjectStatus status = 4;
+}
+
+message ListProjectsResponse {
+  repeated Project projects = 1;
+  int32 total = 2;
+  string error = 3;
+}
+
+message ListUserProjectsRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  ProjectStatus status = 4;
+}
+
+message ListUserProjectsResponse {
+  repeated Project projects = 1;
+  int32 total = 2;
+  string error = 3;
+}
