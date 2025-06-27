@@ -1,14 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable experimental features for better Docker builds
-  experimental: {
-    // Enable standalone output for better Docker images
-    output: 'standalone',
-  },
+  // Output configuration (moved from experimental in newer versions)
+  output: 'standalone',
   
   // Environment variables
   env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
+    CUSTOM_KEY: process.env.CUSTOM_KEY || '',
   },
 
   // Image optimization configuration

@@ -1,4 +1,4 @@
-package auth
+package authtest
 
 import (
 	"net/http"
@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/auth"
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/user"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/user"
 )
 
 func TestJWTMiddleware(t *testing.T) {
@@ -16,7 +17,7 @@ func TestJWTMiddleware(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		setupAuth      func() *Service
+		setupAuth      func() *auth.Service
 		authHeader     string
 		expectedStatus int
 		expectedError  string
@@ -24,10 +25,10 @@ func TestJWTMiddleware(t *testing.T) {
 	}{
 		{
 			name: "valid token",
-			setupAuth: func() *Service {
+			setupAuth: func() *auth.Service {
 				userRepo := new(MockUserRepository)
-				tokenManager := NewTokenManager("test-secret", "test-issuer")
-				service := NewService(userRepo, tokenManager)
+				tokenManager := auth.NewTokenManager("test-secret", "test-issuer")
+				service := auth.NewService(userRepo, tokenManager)
 
 				testUser := &user.User{
 					ID:       "user-123",
@@ -45,8 +46,8 @@ func TestJWTMiddleware(t *testing.T) {
 		},
 		{
 			name: "missing authorization header",
-			setupAuth: func() *Service {
-				return NewService(new(MockUserRepository), NewTokenManager("test-secret", "test-issuer"))
+			setupAuth: func() *auth.Service {
+				return auth.NewService(new(MockUserRepository), auth.NewTokenManager("test-secret", "test-issuer"))
 			},
 			authHeader:     "",
 			expectedStatus: http.StatusUnauthorized,
@@ -54,8 +55,8 @@ func TestJWTMiddleware(t *testing.T) {
 		},
 		{
 			name: "invalid header format",
-			setupAuth: func() *Service {
-				return NewService(new(MockUserRepository), NewTokenManager("test-secret", "test-issuer"))
+			setupAuth: func() *auth.Service {
+				return auth.NewService(new(MockUserRepository), auth.NewTokenManager("test-secret", "test-issuer"))
 			},
 			authHeader:     "InvalidFormat token",
 			expectedStatus: http.StatusUnauthorized,
@@ -63,8 +64,8 @@ func TestJWTMiddleware(t *testing.T) {
 		},
 		{
 			name: "empty token",
-			setupAuth: func() *Service {
-				return NewService(new(MockUserRepository), NewTokenManager("test-secret", "test-issuer"))
+			setupAuth: func() *auth.Service {
+				return auth.NewService(new(MockUserRepository), auth.NewTokenManager("test-secret", "test-issuer"))
 			},
 			authHeader:     "Bearer ",
 			expectedStatus: http.StatusUnauthorized,
@@ -72,8 +73,8 @@ func TestJWTMiddleware(t *testing.T) {
 		},
 		{
 			name: "invalid token",
-			setupAuth: func() *Service {
-				return NewService(new(MockUserRepository), NewTokenManager("test-secret", "test-issuer"))
+			setupAuth: func() *auth.Service {
+				return auth.NewService(new(MockUserRepository), auth.NewTokenManager("test-secret", "test-issuer"))
 			},
 			authHeader:     "Bearer invalid-token",
 			expectedStatus: http.StatusUnauthorized,
@@ -81,10 +82,10 @@ func TestJWTMiddleware(t *testing.T) {
 		},
 		{
 			name: "valid token but inactive user",
-			setupAuth: func() *Service {
+			setupAuth: func() *auth.Service {
 				userRepo := new(MockUserRepository)
-				tokenManager := NewTokenManager("test-secret", "test-issuer")
-				service := NewService(userRepo, tokenManager)
+				tokenManager := auth.NewTokenManager("test-secret", "test-issuer")
+				service := auth.NewService(userRepo, tokenManager)
 
 				// Mock ValidateToken to return user ID, but user is inactive
 				inactiveUser := &user.User{
@@ -106,26 +107,26 @@ func TestJWTMiddleware(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			authService := tt.setupAuth()
-			
+
 			// Create a test endpoint
 			r := gin.New()
-			r.Use(JWTMiddleware(authService))
+			r.Use(auth.JWTMiddleware(authService))
 			r.GET("/protected", func(c *gin.Context) {
 				// Check if context was set properly
 				if tt.expectContext {
-					userID, exists := GetUserID(c)
+					userID, exists := auth.GetUserID(c)
 					assert.True(t, exists)
 					assert.NotEmpty(t, userID)
 
-					email, exists := GetUserEmail(c)
+					email, exists := auth.GetUserEmail(c)
 					assert.True(t, exists)
 					assert.NotEmpty(t, email)
 
-					roles, exists := GetUserRoles(c)
+					roles, exists := auth.GetUserRoles(c)
 					assert.True(t, exists)
 					assert.NotEmpty(t, roles)
 
-					user, exists := GetUser(c)
+					user, exists := auth.GetUser(c)
 					assert.True(t, exists)
 					assert.NotNil(t, user)
 				}
@@ -134,7 +135,7 @@ func TestJWTMiddleware(t *testing.T) {
 
 			// Create request
 			req := httptest.NewRequest("GET", "/protected", nil)
-			
+
 			// Set authorization header
 			authHeader := tt.authHeader
 			if tt.name == "valid token" {
@@ -148,7 +149,7 @@ func TestJWTMiddleware(t *testing.T) {
 				assert.NoError(t, err)
 				authHeader = "Bearer " + token
 			}
-			
+
 			if authHeader != "" {
 				req.Header.Set("Authorization", authHeader)
 			}
@@ -197,7 +198,7 @@ func TestRequireAdmin(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := gin.New()
-			
+
 			// Mock the authentication middleware
 			r.Use(func(c *gin.Context) {
 				c.Set("user_id", "test-user")
@@ -205,8 +206,8 @@ func TestRequireAdmin(t *testing.T) {
 				c.Set("user_roles", tt.userRoles)
 				c.Next()
 			})
-			
-			r.Use(RequireAdmin())
+
+			r.Use(auth.RequireAdmin())
 			r.GET("/admin", func(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{"message": "admin access granted"})
 			})
@@ -234,34 +235,34 @@ func TestHelperFunctions(t *testing.T) {
 			Email: "test@example.com",
 			Roles: []string{"admin", "user"},
 		}
-		
+
 		c.Set("user_id", testUser.ID)
 		c.Set("user_email", testUser.Email)
 		c.Set("user_roles", testUser.Roles)
 		c.Set("user", testUser)
 
 		// Test helper functions
-		userID, exists := GetUserID(c)
+		userID, exists := auth.GetUserID(c)
 		assert.True(t, exists)
 		assert.Equal(t, "test-123", userID)
 
-		email, exists := GetUserEmail(c)
+		email, exists := auth.GetUserEmail(c)
 		assert.True(t, exists)
 		assert.Equal(t, "test@example.com", email)
 
-		roles, exists := GetUserRoles(c)
+		roles, exists := auth.GetUserRoles(c)
 		assert.True(t, exists)
 		assert.Equal(t, []string{"admin", "user"}, roles)
 
-		user, exists := GetUser(c)
+		user, exists := auth.GetUser(c)
 		assert.True(t, exists)
 		assert.Equal(t, testUser, user)
 
 		// Test role checking
-		assert.True(t, HasRole(c, "admin"))
-		assert.True(t, HasRole(c, "user"))
-		assert.False(t, HasRole(c, "moderator"))
-		assert.True(t, IsAdmin(c))
+		assert.True(t, auth.HasRole(c, "admin"))
+		assert.True(t, auth.HasRole(c, "user"))
+		assert.False(t, auth.HasRole(c, "moderator"))
+		assert.True(t, auth.IsAdmin(c))
 
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
 	})

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package user;
 
-option go_package = "github.com/ai-code-gen/ai-ui-generator/api/proto/user";
+option go_package = "github.com/EliasRanz/ai-code-gen/ai-ui-generator/api/proto/user";
 
 service UserService {
   // User management
@@ -28,8 +28,11 @@ message User {
   string name = 3;
   string avatar_url = 4;
   repeated string roles = 5;
-  int64 created_at = 6;
-  int64 updated_at = 7;
+  bool is_active = 6;
+  bool email_verified = 7;
+  int64 created_at = 8;
+  int64 updated_at = 9;
+  int64 last_login_at = 10;
 }
 
 // Project messages

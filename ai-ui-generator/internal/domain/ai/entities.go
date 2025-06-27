@@ -36,6 +36,30 @@ func (r GenerationRequest) Validate() error {
 	return nil
 }
 
+// GetModel returns the model to use for generation, with a default value
+func (r GenerationRequest) GetModel() string {
+	if r.Model == "" {
+		return "gpt-3.5-turbo" // Default model
+	}
+	return r.Model
+}
+
+// GetTemperature returns the temperature to use for generation, with a default value
+func (r GenerationRequest) GetTemperature() float64 {
+	if r.Temperature == nil {
+		return 0.7 // Default temperature
+	}
+	return *r.Temperature
+}
+
+// GetMaxTokens returns the max tokens to use for generation, with a default value
+func (r GenerationRequest) GetMaxTokens() int {
+	if r.MaxTokens == nil {
+		return 2048 // Default max tokens
+	}
+	return *r.MaxTokens
+}
+
 // GenerationResult represents the result of code generation
 type GenerationResult struct {
 	ID            string

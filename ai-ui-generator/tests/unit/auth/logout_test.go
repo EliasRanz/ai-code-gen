@@ -1,4 +1,4 @@
-package auth
+package authtest
 
 import (
 	"net/http"
@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,9 +14,9 @@ import (
 func TestLogoutHandler_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	service := &Service{}
+	service := CreateTestService()
 	r.POST("/logout", func(c *gin.Context) {
-		h := &Handler{service: service}
+		h := auth.NewHandler(service)
 		h.Logout(c)
 	})
 
@@ -31,9 +32,9 @@ func TestLogoutHandler_Success(t *testing.T) {
 func TestLogoutHandler_MissingToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	service := &Service{}
+	service := CreateTestService()
 	r.POST("/logout", func(c *gin.Context) {
-		h := &Handler{service: service}
+		h := auth.NewHandler(service)
 		h.Logout(c)
 	})
 

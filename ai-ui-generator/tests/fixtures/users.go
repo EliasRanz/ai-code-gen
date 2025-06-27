@@ -12,8 +12,8 @@ func MockUser() *pb.User {
 		Name:      "Test User",
 		AvatarUrl: "https://example.com/avatar.jpg",
 		Roles:     []string{"user"},
-		CreatedAt: 1672531200, // 2023-01-01T00:00:00Z as unix timestamp
-		UpdatedAt: 1672531200, // 2023-01-01T00:00:00Z as unix timestamp
+		CreatedAt: 1672531200, // 2023-01-01T00:00:00Z as Unix timestamp
+		UpdatedAt: 1672531200, // 2023-01-01T00:00:00Z as Unix timestamp
 	}
 }
 
@@ -24,8 +24,8 @@ func MockProject() *pb.Project {
 		UserId:      "test-user-id",
 		Name:        "Test Project",
 		Description: "A test project",
-		Status:      pb.ProjectStatus_PROJECT_STATUS_ACTIVE,
-		CreatedAt:   1672531200, // 2023-01-01T00:00:00Z as unix timestamp
-		UpdatedAt:   1672531200, // 2023-01-01T00:00:00Z as unix timestamp
+		Status:      pb.ProjectStatus_ACTIVE,
+		CreatedAt:   1672531200, // 2023-01-01T00:00:00Z as Unix timestamp
+		UpdatedAt:   1672531200, // 2023-01-01T00:00:00Z as Unix timestamp
 	}
 }

@@ -1,4 +1,4 @@
-package auth
+package authtest
 
 import (
 	"net/http"
@@ -6,23 +6,26 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EliasRanz/ai-code-gen/ai-ui-generator/internal/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRefreshTokenHandler_Success(t *testing.T) {
+func TestRefreshTokenHandlerSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
+
 	// Setup TokenManager and Service with a known userID
 	secret := "testsecret"
 	issuer := "testissuer"
-	tm := NewTokenManager(secret, issuer)
+	tm := auth.NewTokenManager(secret, issuer)
 	userID := "user123"
 	refreshToken, err := tm.GenerateRefreshToken(userID)
 	assert.NoError(t, err)
-	service := &Service{TokenManager: tm}
+
+	service := auth.NewService(&MockUserRepository{}, tm)
 	r.POST("/refresh", func(c *gin.Context) {
-		h := &Handler{service: service}
+		h := auth.NewHandler(service)
 		h.RefreshToken(c)
 	})
 
@@ -31,20 +34,22 @@ func TestRefreshTokenHandler_Success(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/refresh", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
+
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "access_token")
 	assert.Contains(t, w.Body.String(), "refresh_token")
 }
 
-func TestRefreshTokenHandler_InvalidToken(t *testing.T) {
+func TestRefreshTokenHandlerInvalidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
+
 	secret := "testsecret"
 	issuer := "testissuer"
-	tm := NewTokenManager(secret, issuer)
-	service := &Service{TokenManager: tm}
+	tm := auth.NewTokenManager(secret, issuer)
+	service := auth.NewService(&MockUserRepository{}, tm)
 	r.POST("/refresh", func(c *gin.Context) {
-		h := &Handler{service: service}
+		h := auth.NewHandler(service)
 		h.RefreshToken(c)
 	})
 
@@ -53,5 +58,6 @@ func TestRefreshTokenHandler_InvalidToken(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/refresh", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
+
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }

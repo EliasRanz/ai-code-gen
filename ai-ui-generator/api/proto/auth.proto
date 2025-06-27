@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package auth;
 
-option go_package = "github.com/ai-code-gen/ai-ui-generator/api/proto/auth";
+option go_package = "github.com/EliasRanz/ai-code-gen/ai-ui-generator/api/proto/auth";
 
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse);
