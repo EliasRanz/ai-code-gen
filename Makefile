@@ -27,7 +27,7 @@ build: ## Build all services
 
 test: ## Run all tests
 	@echo "Running Go tests..."
-	go test -v -race ./...
+	go test -v -race ./... -json | tparse
 	@echo "Running frontend tests..."
 	cd web && npm test
 
