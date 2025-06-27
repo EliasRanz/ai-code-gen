@@ -123,6 +123,7 @@ deps: ## Update dependencies
 
 security: ## Run security checks
 	@echo "Running security checks..."
+	@which gosec > /dev/null || (echo "Installing gosec..." && go install github.com/securego/gosec/v2/cmd/gosec@latest)
 	gosec ./...
 	cd web && npm audit
 
