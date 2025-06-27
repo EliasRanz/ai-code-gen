@@ -11,6 +11,7 @@ import (
 	"github.com/EliasRanz/ai-code-gen/internal/domain/auth"
 	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
 	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
+	authapp "github.com/EliasRanz/ai-code-gen/internal/application/auth"
 )
 
 // Mock implementations for testing
@@ -154,7 +155,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		passwordHasher := new(MockPasswordHasher)
 		tokenProvider := new(MockTokenProvider)
 
-		useCase := NewLoginUseCase(userRepo, sessionRepo, passwordHasher, tokenProvider)
+		useCase := authapp.NewLoginUseCase(userRepo, sessionRepo, passwordHasher, tokenProvider)
 
 		// Setup expectations
 		userRepo.On("GetByEmail", ctx, email).Return(testUser, nil)
@@ -164,7 +165,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		sessionRepo.On("Create", ctx, mock.AnythingOfType("auth.Session")).Return(nil)
 
 		// Execute
-		request := LoginRequest{
+		request := authapp.LoginRequest{
 			Email:    email,
 			Password: password,
 		}
@@ -191,11 +192,11 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		passwordHasher := new(MockPasswordHasher)
 		tokenProvider := new(MockTokenProvider)
 
-		useCase := NewLoginUseCase(userRepo, sessionRepo, passwordHasher, tokenProvider)
+		useCase := authapp.NewLoginUseCase(userRepo, sessionRepo, passwordHasher, tokenProvider)
 
 		userRepo.On("GetByEmail", ctx, email).Return(user.User{}, common.NewNotFoundError("user not found"))
 
-		request := LoginRequest{
+		request := authapp.LoginRequest{
 			Email:    email,
 			Password: password,
 		}
@@ -214,12 +215,12 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		passwordHasher := new(MockPasswordHasher)
 		tokenProvider := new(MockTokenProvider)
 
-		useCase := NewLoginUseCase(userRepo, sessionRepo, passwordHasher, tokenProvider)
+		useCase := authapp.NewLoginUseCase(userRepo, sessionRepo, passwordHasher, tokenProvider)
 
 		userRepo.On("GetByEmail", ctx, email).Return(testUser, nil)
 		passwordHasher.On("Verify", "wrongpassword", passwordHash).Return(false)
 
-		request := LoginRequest{
+		request := authapp.LoginRequest{
 			Email:    email,
 			Password: "wrongpassword",
 		}
@@ -239,14 +240,14 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		passwordHasher := new(MockPasswordHasher)
 		tokenProvider := new(MockTokenProvider)
 
-		useCase := NewLoginUseCase(userRepo, sessionRepo, passwordHasher, tokenProvider)
+		useCase := authapp.NewLoginUseCase(userRepo, sessionRepo, passwordHasher, tokenProvider)
 
 		inactiveUser := testUser
 		inactiveUser.Active = false
 
 		userRepo.On("GetByEmail", ctx, email).Return(inactiveUser, nil)
 
-		request := LoginRequest{
+		request := authapp.LoginRequest{
 			Email:    email,
 			Password: password,
 		}
@@ -265,13 +266,13 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		passwordHasher := new(MockPasswordHasher)
 		tokenProvider := new(MockTokenProvider)
 
-		useCase := NewLoginUseCase(userRepo, sessionRepo, passwordHasher, tokenProvider)
+		useCase := authapp.NewLoginUseCase(userRepo, sessionRepo, passwordHasher, tokenProvider)
 
 		userRepo.On("GetByEmail", ctx, email).Return(testUser, nil)
 		passwordHasher.On("Verify", password, passwordHash).Return(true)
 		tokenProvider.On("GenerateAccessToken", userID).Return("", assert.AnError)
 
-		request := LoginRequest{
+		request := authapp.LoginRequest{
 			Email:    email,
 			Password: password,
 		}

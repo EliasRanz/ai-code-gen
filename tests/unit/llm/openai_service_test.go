@@ -6,10 +6,11 @@ import (
 
 	"github.com/EliasRanz/ai-code-gen/internal/domain/ai"
 	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/llm"
 )
 
 func TestOpenAIService_Validate(t *testing.T) {
-	service := NewOpenAIService("test-api-key")
+	service := llm.NewOpenAIService("test-api-key")
 
 	tests := []struct {
 		name     string
@@ -68,7 +69,7 @@ func TestOpenAIService_Validate(t *testing.T) {
 }
 
 func TestOpenAIService_StreamingInterface(t *testing.T) {
-	service := NewOpenAIService("test-api-key")
+	service := llm.NewOpenAIService("test-api-key")
 
 	// Test that the streaming interface can be called without API key errors
 	// (This test focuses on interface compatibility, not actual API calls)
@@ -106,7 +107,7 @@ func TestOpenAIService_StreamingInterface(t *testing.T) {
 }
 
 func TestOpenAIService_GenerationRequest(t *testing.T) {
-	service := NewOpenAIService("test-api-key")
+	service := llm.NewOpenAIService("test-api-key")
 
 	req := ai.GenerationRequest{
 		Prompt:   "Generate a hello world function",

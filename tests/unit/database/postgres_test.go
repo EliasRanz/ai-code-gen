@@ -4,10 +4,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/EliasRanz/ai-code-gen/internal/database"
 )
 
 func TestConfig(t *testing.T) {
-	config := &Config{
+	config := &database.Config{
 		Host:     "localhost",
 		Port:     5432,
 		User:     "test",
@@ -26,27 +27,27 @@ func TestConfig(t *testing.T) {
 }
 
 func TestConnection_Close(t *testing.T) {
-	conn := &Connection{}
+	conn := &database.Connection{}
 	err := conn.Close()
 	assert.NoError(t, err)
 }
 
 func TestConnection_Health_NilDB(t *testing.T) {
-	conn := &Connection{}
+	conn := &database.Connection{}
 	err := conn.Health()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "database connection is nil")
 }
 
 func TestConnection_Migrate_NilDB(t *testing.T) {
-	conn := &Connection{}
+	conn := &database.Connection{}
 	err := conn.Migrate()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "database connection is nil")
 }
 
 func TestConnection_GetMigrationVersion_NilDB(t *testing.T) {
-	conn := &Connection{}
+	conn := &database.Connection{}
 	version, dirty, err := conn.GetMigrationVersion()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "database connection is nil")

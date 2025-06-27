@@ -24,7 +24,7 @@ func MockProject() *pb.Project {
 		UserId:      "test-user-id",
 		Name:        "Test Project",
 		Description: "A test project",
-		Status:      pb.ProjectStatus_ACTIVE,
+		Status:      pb.ProjectStatus_PROJECT_STATUS_ACTIVE,
 		CreatedAt:   1672531200, // 2023-01-01T00:00:00Z as Unix timestamp
 		UpdatedAt:   1672531200, // 2023-01-01T00:00:00Z as Unix timestamp
 	}
