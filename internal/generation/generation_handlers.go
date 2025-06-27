@@ -11,10 +11,32 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/EliasRanz/ai-code-gen/internal/llm"
+	"github.com/EliasRanz/ai-code-gen/internal/user"
 )
 
 // StreamGenerationHandler handles streaming AI generation requests
 func (s *Service) StreamGenerationHandler(c *gin.Context) {
+	// Check authentication
+	userContext, exists := c.Get("user")
+	if !exists {
+		log.Warn().Msg("Unauthorized: No user context found")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	userObj, ok := userContext.(*user.User)
+	if !ok {
+		log.Warn().Msg("Unauthorized: Invalid user context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user context"})
+		return
+	}
+
+	if !userObj.IsActive {
+		log.Warn().Str("user_id", userObj.ID).Msg("Forbidden: User is inactive")
+		c.JSON(http.StatusForbidden, gin.H{"error": "User account is inactive"})
+		return
+	}
+
 	var req struct {
 		Model       string                 `json:"model" binding:"required"`
 		Prompt      string                 `json:"prompt" binding:"required"`
@@ -67,6 +89,27 @@ func (s *Service) StreamGenerationHandler(c *gin.Context) {
 
 // NonStreamGenerationHandler handles non-streaming AI generation requests
 func (s *Service) NonStreamGenerationHandler(c *gin.Context) {
+	// Check authentication
+	userContext, exists := c.Get("user")
+	if !exists {
+		log.Warn().Msg("Unauthorized: No user context found")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	userObj, ok := userContext.(*user.User)
+	if !ok {
+		log.Warn().Msg("Unauthorized: Invalid user context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user context"})
+		return
+	}
+
+	if !userObj.IsActive {
+		log.Warn().Str("user_id", userObj.ID).Msg("Forbidden: User is inactive")
+		c.JSON(http.StatusForbidden, gin.H{"error": "User account is inactive"})
+		return
+	}
+
 	var req struct {
 		Model       string                 `json:"model" binding:"required"`
 		Prompt      string                 `json:"prompt" binding:"required"`
@@ -103,7 +146,7 @@ func (s *Service) NonStreamGenerationHandler(c *gin.Context) {
 	resp, err := s.llmClient.Generate(c.Request.Context(), genReq)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate response")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate response"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Generation failed"})
 		return
 	}
 
