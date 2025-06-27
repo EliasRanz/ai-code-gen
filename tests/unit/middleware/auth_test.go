@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/EliasRanz/ai-code-gen/internal/auth"
+	"github.com/EliasRanz/ai-code-gen/internal/middleware"
 	"github.com/EliasRanz/ai-code-gen/internal/user"
 )
 
@@ -57,7 +58,7 @@ func TestAuthMiddleware_NoHeader(t *testing.T) {
 	mockUserRepo := &MockUserRepository{}
 
 	router := gin.New()
-	router.Use(AuthMiddleware(tokenManager, mockUserRepo))
+	router.Use(middleware.AuthMiddleware(tokenManager, mockUserRepo))
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "success"})
 	})
@@ -77,7 +78,7 @@ func TestAuthMiddleware_InvalidHeader(t *testing.T) {
 	mockUserRepo := &MockUserRepository{}
 
 	router := gin.New()
-	router.Use(AuthMiddleware(tokenManager, mockUserRepo))
+	router.Use(middleware.AuthMiddleware(tokenManager, mockUserRepo))
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "success"})
 	})
@@ -98,7 +99,7 @@ func TestAuthMiddleware_EmptyToken(t *testing.T) {
 	mockUserRepo := &MockUserRepository{}
 
 	router := gin.New()
-	router.Use(AuthMiddleware(tokenManager, mockUserRepo))
+	router.Use(middleware.AuthMiddleware(tokenManager, mockUserRepo))
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "success"})
 	})
@@ -119,7 +120,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	mockUserRepo := &MockUserRepository{}
 
 	router := gin.New()
-	router.Use(AuthMiddleware(tokenManager, mockUserRepo))
+	router.Use(middleware.AuthMiddleware(tokenManager, mockUserRepo))
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "success"})
 	})
@@ -145,7 +146,7 @@ func TestAuthMiddleware_UserNotFound(t *testing.T) {
 	mockUserRepo.On("GetByID", "user123").Return((*user.User)(nil), errors.New("user not found"))
 
 	router := gin.New()
-	router.Use(AuthMiddleware(tokenManager, mockUserRepo))
+	router.Use(middleware.AuthMiddleware(tokenManager, mockUserRepo))
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "success"})
 	})
@@ -179,7 +180,7 @@ func TestAuthMiddleware_InactiveUser(t *testing.T) {
 	mockUserRepo.On("GetByID", "user123").Return(inactiveUser, nil)
 
 	router := gin.New()
-	router.Use(AuthMiddleware(tokenManager, mockUserRepo))
+	router.Use(middleware.AuthMiddleware(tokenManager, mockUserRepo))
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "success"})
 	})
@@ -216,7 +217,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	var contextAuth bool
 
 	router := gin.New()
-	router.Use(AuthMiddleware(tokenManager, mockUserRepo))
+	router.Use(middleware.AuthMiddleware(tokenManager, mockUserRepo))
 	router.GET("/test", func(c *gin.Context) {
 		contextUserID = c.GetString("user_id")
 		contextEmail = c.GetString("user_email")
@@ -246,7 +247,7 @@ func TestLightweightAuthMiddleware_NoHeader(t *testing.T) {
 	tokenManager := auth.NewTokenManager("test-secret", "test-issuer")
 
 	router := gin.New()
-	router.Use(LightweightAuthMiddleware(tokenManager))
+	router.Use(middleware.LightweightAuthMiddleware(tokenManager))
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "success"})
 	})
@@ -271,7 +272,7 @@ func TestLightweightAuthMiddleware_ValidToken(t *testing.T) {
 	var contextAuth bool
 
 	router := gin.New()
-	router.Use(LightweightAuthMiddleware(tokenManager))
+	router.Use(middleware.LightweightAuthMiddleware(tokenManager))
 	router.GET("/test", func(c *gin.Context) {
 		contextUserID = c.GetString("user_id")
 		if auth, exists := c.Get("authenticated"); exists {
@@ -294,7 +295,7 @@ func TestAdminRequired_NotAuthenticated(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
-	router.Use(AdminRequired())
+	router.Use(middleware.AdminRequired())
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "success"})
 	})
@@ -317,7 +318,7 @@ func TestAdminRequired_NotAdmin(t *testing.T) {
 		c.Set("user_role", "user")
 		c.Next()
 	})
-	router.Use(AdminRequired())
+	router.Use(middleware.AdminRequired())
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "success"})
 	})
@@ -340,7 +341,7 @@ func TestAdminRequired_IsAdmin(t *testing.T) {
 		c.Set("user_role", "admin")
 		c.Next()
 	})
-	router.Use(AdminRequired())
+	router.Use(middleware.AdminRequired())
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "success"})
 	})
@@ -363,7 +364,7 @@ func TestGetUserContext_Authenticated(t *testing.T) {
 		c.Set("user_email", "test@example.com")
 		c.Set("user_role", "admin")
 
-		userID, email, role, authenticated := GetUserContext(c)
+		userID, email, role, authenticated := middleware.GetUserContext(c)
 		c.JSON(200, gin.H{
 			"user_id":       userID,
 			"email":         email,
@@ -388,7 +389,7 @@ func TestGetUserContext_NotAuthenticated(t *testing.T) {
 
 	router := gin.New()
 	router.GET("/test", func(c *gin.Context) {
-		userID, email, role, authenticated := GetUserContext(c)
+		userID, email, role, authenticated := middleware.GetUserContext(c)
 		c.JSON(200, gin.H{
 			"user_id":       userID,
 			"email":         email,
@@ -415,7 +416,7 @@ func TestIsAdmin(t *testing.T) {
 		router := gin.New()
 		router.GET("/test", func(c *gin.Context) {
 			c.Set("user_role", "admin")
-			result := IsAdmin(c)
+			result := middleware.IsAdmin(c)
 			c.JSON(200, gin.H{"is_admin": result})
 		})
 
@@ -431,7 +432,7 @@ func TestIsAdmin(t *testing.T) {
 		router := gin.New()
 		router.GET("/test", func(c *gin.Context) {
 			c.Set("user_role", "user")
-			result := IsAdmin(c)
+			result := middleware.IsAdmin(c)
 			c.JSON(200, gin.H{"is_admin": result})
 		})
 
@@ -451,7 +452,7 @@ func TestIsAuthenticated(t *testing.T) {
 		router := gin.New()
 		router.GET("/test", func(c *gin.Context) {
 			c.Set("authenticated", true)
-			result := IsAuthenticated(c)
+			result := middleware.IsAuthenticated(c)
 			c.JSON(200, gin.H{"is_authenticated": result})
 		})
 
@@ -466,7 +467,7 @@ func TestIsAuthenticated(t *testing.T) {
 	t.Run("should return false for unauthenticated user", func(t *testing.T) {
 		router := gin.New()
 		router.GET("/test", func(c *gin.Context) {
-			result := IsAuthenticated(c)
+			result := middleware.IsAuthenticated(c)
 			c.JSON(200, gin.H{"is_authenticated": result})
 		})
 

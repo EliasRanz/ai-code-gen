@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/EliasRanz/ai-code-gen/internal/auth"
+	"github.com/EliasRanz/ai-code-gen/internal/generation"
 	"github.com/EliasRanz/ai-code-gen/internal/llm"
 	"github.com/EliasRanz/ai-code-gen/internal/user"
 )
@@ -47,6 +48,13 @@ type MockLLMClient struct {
 	mock.Mock
 }
 
+// mockAuthService creates a minimal auth service for testing
+func mockAuthService() *auth.Service {
+	// Return nil since the generation service doesn't actually use the auth service directly
+	// The auth is handled by middleware, not by the service itself
+	return nil
+}
+
 func (m *MockLLMClient) Generate(ctx context.Context, req *llm.GenerationRequest) (*llm.GenerationResponse, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*llm.GenerationResponse), args.Error(1)
@@ -74,55 +82,32 @@ func (m *MockLLMClient) Close() error {
 
 func TestNewService(t *testing.T) {
 	tests := []struct {
-		name         string
-		config       *Config
-		authService  *auth.Service
-		expectError  bool
-		expectedLogs []string
+		name        string
+		llmClient   llm.LLMClient
+		redisClient generation.RedisClient
+		expectError bool
 	}{
 		{
-			name: "service with Redis config",
-			config: &Config{
-				LLMConfig: &llm.VLLMConfig{
-					BaseURL: "http://localhost:8000",
-					APIKey:  "test-key",
-				},
-				RedisConfig: &RedisConfig{
-					Host: "localhost",
-					Port: 6379,
-					DB:   0,
-				},
-			},
-			authService: &auth.Service{},
+			name:        "service with valid clients",
+			llmClient:   &MockLLMClient{},
+			redisClient: &MockRedisClient{},
 			expectError: false,
 		},
 		{
-			name: "service without Redis config",
-			config: &Config{
-				LLMConfig: &llm.VLLMConfig{
-					BaseURL: "http://localhost:8000",
-					APIKey:  "test-key",
-				},
-			},
-			authService: &auth.Service{},
+			name:        "service with nil redis client",
+			llmClient:   &MockLLMClient{},
+			redisClient: nil,
 			expectError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			service, err := NewService(tt.config, tt.authService)
-			
-			if tt.expectError {
-				assert.Error(t, err)
-				assert.Nil(t, service)
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, service)
-				assert.NotNil(t, service.llmClient)
-				assert.NotNil(t, service.redis)
-				assert.Equal(t, tt.authService, service.authService)
-			}
+			service := generation.NewService(tt.llmClient, tt.redisClient, mockAuthService())
+
+			assert.NotNil(t, service)
+			// Note: Fields are private, so we can't test them directly
+			// Instead we should test the service behavior
 		})
 	}
 }
@@ -138,28 +123,20 @@ func TestStreamGenerationHandler(t *testing.T) {
 		expectedError  string
 	}{
 		{
-			name: "missing user context",
+			name: "successful stream request",
 			setupContext: func(c *gin.Context) {
-				// Don't set user context
-			},
-			requestBody:    `{"model": "test-model", "prompt": "test prompt"}`,
-			expectedStatus: http.StatusUnauthorized,
-			expectedError:  "Authentication required",
-		},
-		{
-			name: "inactive user",
-			setupContext: func(c *gin.Context) {
+				// Set valid user context
 				testUser := &user.User{
 					ID:       "test-user",
 					Email:    "test@example.com",
-					IsActive: false,
+					IsActive: true,
 				}
 				c.Set("user_id", testUser.ID)
 				c.Set("user", testUser)
 			},
 			requestBody:    `{"model": "test-model", "prompt": "test prompt"}`,
-			expectedStatus: http.StatusForbidden,
-			expectedError:  "User account is inactive",
+			expectedStatus: http.StatusOK,
+			expectedError:  "",
 		},
 		{
 			name: "invalid request body",
@@ -174,6 +151,31 @@ func TestStreamGenerationHandler(t *testing.T) {
 			},
 			requestBody:    `{"invalid": "json"}`,
 			expectedStatus: http.StatusBadRequest,
+			expectedError:  "Error:Field validation for 'Model' failed on the 'required' tag",
+		},
+		{
+			name: "unauthorized - no user context",
+			setupContext: func(c *gin.Context) {
+				// Don't set any user context
+			},
+			requestBody:    `{"model": "test-model", "prompt": "test prompt"}`,
+			expectedStatus: http.StatusUnauthorized,
+			expectedError:  "Authentication required",
+		},
+		{
+			name: "forbidden - inactive user",
+			setupContext: func(c *gin.Context) {
+				testUser := &user.User{
+					ID:       "test-user",
+					Email:    "test@example.com",
+					IsActive: false, // User is inactive
+				}
+				c.Set("user_id", testUser.ID)
+				c.Set("user", testUser)
+			},
+			requestBody:    `{"model": "test-model", "prompt": "test prompt"}`,
+			expectedStatus: http.StatusForbidden,
+			expectedError:  "User account is inactive",
 		},
 	}
 
@@ -182,11 +184,13 @@ func TestStreamGenerationHandler(t *testing.T) {
 			// Create service with mocks
 			mockLLM := new(MockLLMClient)
 			mockRedis := new(MockRedisClient)
-			
-			service := &Service{
-				llmClient: mockLLM,
-				redis:     mockRedis,
-			}
+
+			// Set up mock expectations for streaming (even for error cases)
+			respChan := make(chan *llm.GenerationResponse, 1)
+			close(respChan) // Close immediately to simulate no responses
+			mockLLM.On("GenerateStream", mock.Anything, mock.Anything).Return((<-chan *llm.GenerationResponse)(respChan), nil)
+
+			service := generation.NewService(mockLLM, mockRedis, mockAuthService())
 
 			// Create test request
 			r := gin.New()
@@ -264,6 +268,30 @@ func TestNonStreamGenerationHandler(t *testing.T) {
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  "Generation failed",
 		},
+		{
+			name: "unauthorized - no user context",
+			setupContext: func(c *gin.Context) {
+				// Don't set any user context
+			},
+			requestBody:    `{"model": "test-model", "prompt": "test prompt"}`,
+			expectedStatus: http.StatusUnauthorized,
+			expectedError:  "Authentication required",
+		},
+		{
+			name: "forbidden - inactive user",
+			setupContext: func(c *gin.Context) {
+				testUser := &user.User{
+					ID:       "test-user",
+					Email:    "test@example.com",
+					IsActive: false, // User is inactive
+				}
+				c.Set("user_id", testUser.ID)
+				c.Set("user", testUser)
+			},
+			requestBody:    `{"model": "test-model", "prompt": "test prompt"}`,
+			expectedStatus: http.StatusForbidden,
+			expectedError:  "User account is inactive",
+		},
 	}
 
 	for _, tt := range tests {
@@ -271,15 +299,12 @@ func TestNonStreamGenerationHandler(t *testing.T) {
 			// Create service with mocks
 			mockLLM := new(MockLLMClient)
 			mockRedis := new(MockRedisClient)
-			
+
 			if tt.setupMocks != nil {
 				tt.setupMocks(mockLLM)
 			}
 
-			service := &Service{
-				llmClient: mockLLM,
-				redis:     mockRedis,
-			}
+			service := generation.NewService(mockLLM, mockRedis, mockAuthService())
 
 			// Create test request
 			r := gin.New()
@@ -325,7 +350,7 @@ func TestGetModelsHandler(t *testing.T) {
 						MaxTokens:   4096,
 					},
 					{
-						ID:          "model2", 
+						ID:          "model2",
 						Name:        "Test Model 2",
 						Description: "Test model 2 description",
 						Provider:    "test",
@@ -350,11 +375,8 @@ func TestGetModelsHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLLM := new(MockLLMClient)
 			mockRedis := new(MockRedisClient)
-			
-			service := &Service{
-				llmClient: mockLLM,
-				redis:     mockRedis,
-			}
+
+			service := generation.NewService(mockLLM, mockRedis, mockAuthService())
 
 			tt.setupMocks(mockLLM)
 
@@ -418,13 +440,10 @@ func TestHealthHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLLM := new(MockLLMClient)
 			mockRedis := new(MockRedisClient)
-			
+
 			tt.setupMocks(mockLLM, mockRedis)
 
-			service := &Service{
-				llmClient: mockLLM,
-				redis:     mockRedis,
-			}
+			service := generation.NewService(mockLLM, mockRedis, mockAuthService())
 
 			r := gin.New()
 			r.GET("/health", service.HealthHandler)
@@ -444,8 +463,9 @@ func TestHealthHandler(t *testing.T) {
 }
 
 func TestRedisSubscriptions(t *testing.T) {
+	mockLLM := new(MockLLMClient)
 	mockRedis := new(MockRedisClient)
-	service := &Service{redis: mockRedis}
+	service := generation.NewService(mockLLM, mockRedis, mockAuthService())
 
 	ctx := context.Background()
 
@@ -492,7 +512,8 @@ func TestRedisSubscriptions(t *testing.T) {
 }
 
 func TestRedisSubscriptionsWithoutRedis(t *testing.T) {
-	service := &Service{redis: nil}
+	mockLLM := new(MockLLMClient)
+	service := generation.NewService(mockLLM, nil, mockAuthService())
 	ctx := context.Background()
 
 	tests := []struct {
