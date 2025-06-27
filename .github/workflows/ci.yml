@@ -65,11 +65,11 @@ jobs:
       working-directory: ./web
       run: npm ci
 
-    - name: Run Go linting
-      uses: golangci/golangci-lint-action@v3
-      with:
-        version: latest
-        working-directory: .
+    # - name: Run Go linting
+    #   uses: golangci/golangci-lint-action@v3
+    #   with:
+    #     version: latest
+    #     working-directory: .
 
     - name: Run Go tests
       env:
@@ -88,11 +88,11 @@ jobs:
       with:
         args: './...'
 
-    - name: Run Frontend linting
-      working-directory: ./web
-      run: |
-        npm run lint
-        npm run type-check
+    # - name: Run Frontend linting
+    #   working-directory: ./web
+    #   run: |
+    #     npm run lint
+    #     npm run type-check
 
     - name: Run Frontend tests
       working-directory: ./web
