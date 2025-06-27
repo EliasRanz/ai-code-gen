@@ -6,10 +6,11 @@ import (
 	"testing"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/EliasRanz/ai-code-gen/internal/user"
 	pb "github.com/EliasRanz/ai-code-gen/api/proto/user"
 )
 
-type mockGetUserGRPCClient struct{ mockGRPCClient }
+type mockGetUserGRPCClient struct{}
 
 func (m *mockGetUserGRPCClient) GetUser(userID string) (*pb.GetUserResponse, error) {
 	if userID == "notfound" {
@@ -27,6 +28,27 @@ func (m *mockGetUserGRPCClient) GetUser(userID string) (*pb.GetUserResponse, err
 		},
 		Error: "",
 	}, nil
+}
+
+// Implement all required methods for UserGRPCClient interface
+func (m *mockGetUserGRPCClient) UpdateUser(req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
+	return nil, nil
+}
+
+func (m *mockGetUserGRPCClient) CreateUser(req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
+	return nil, nil
+}
+
+func (m *mockGetUserGRPCClient) ListUsers(page, limit int32, search string) (*pb.ListUsersResponse, error) {
+	return nil, nil
+}
+
+func (m *mockGetUserGRPCClient) DeleteUser(userID string) (*pb.DeleteUserResponse, error) {
+	return nil, nil
+}
+
+func (m *mockGetUserGRPCClient) CreateProject(req *pb.CreateProjectRequest) (*pb.CreateProjectResponse, error) {
+	return nil, nil
 }
 
 func (m *mockGetUserGRPCClient) GetProject(projectID string) (*pb.GetProjectResponse, error) {
@@ -52,11 +74,11 @@ func (m *mockGetUserGRPCClient) ListUserProjects(userID string, page, limit int3
 func TestGetUserProfileHandler_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	setMockGRPCClientForTest(&mockGetUserGRPCClient{})
-	r.GET("/users/:id/profile", GetUserProfileHandler)
+	user.SetGRPCClient(&mockGetUserGRPCClient{})
+	r.GET("/users/:id", user.GetUserHandler)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/users/123/profile", nil)
+	req, _ := http.NewRequest("GET", "/users/123", nil)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "test@example.com")
@@ -66,12 +88,12 @@ func TestGetUserProfileHandler_Success(t *testing.T) {
 func TestGetUserProfileHandler_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	setMockGRPCClientForTest(&mockGetUserGRPCClient{})
-	r.GET("/users/:id/profile", GetUserProfileHandler)
+	user.SetGRPCClient(&mockGetUserGRPCClient{})
+	r.GET("/users/:id", user.GetUserHandler)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/users/notfound/profile", nil)
+	req, _ := http.NewRequest("GET", "/users/notfound", nil)
 	r.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "User not found")
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/EliasRanz/ai-code-gen/internal/user"
 	pb "github.com/EliasRanz/ai-code-gen/api/proto/user"
 )
 
@@ -65,16 +66,11 @@ func (m *mockGRPCClient) ListUserProjects(userID string, page, limit int32, stat
 // Use interface for grpcClient
 var _ interface{ UpdateUser(*pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) } = &mockGRPCClient{}
 
-// Patch SetGRPCClient to accept any UserGRPCClient for testing
-func setMockGRPCClientForTest(m UserGRPCClient) {
-	grpcClient = m
-}
-
 func TestUpdateUserHandler_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	setMockGRPCClientForTest(&mockGRPCClient{})
-	r.PUT("/users/:id", UpdateUserHandler)
+	user.SetGRPCClient(&mockGRPCClient{})
+	r.PUT("/users/:id", user.UpdateUserHandler)
 
 	w := httptest.NewRecorder()
 	body := `{"name": "Updated Name", "avatar_url": "http://avatar", "roles": ["user"]}`
@@ -88,8 +84,8 @@ func TestUpdateUserHandler_Success(t *testing.T) {
 func TestUpdateUserHandler_NotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	setMockGRPCClientForTest(&mockGRPCClient{})
-	r.PUT("/users/:id", UpdateUserHandler)
+	user.SetGRPCClient(&mockGRPCClient{})
+	r.PUT("/users/:id", user.UpdateUserHandler)
 
 	w := httptest.NewRecorder()
 	body := `{"name": "Name"}`

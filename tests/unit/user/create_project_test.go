@@ -1,4 +1,4 @@
-package user
+package user_test
 
 import (
 	"net/http"
@@ -7,10 +7,11 @@ import (
 	"testing"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/EliasRanz/ai-code-gen/internal/user"
 	pb "github.com/EliasRanz/ai-code-gen/api/proto/user"
 )
 
-type mockCreateProjectGRPCClient struct{ mockGRPCClient }
+type mockCreateProjectGRPCClient struct{}
 
 func (m *mockCreateProjectGRPCClient) CreateProject(req *pb.CreateProjectRequest) (*pb.CreateProjectResponse, error) {
 	if req.Name == "fail" {
@@ -32,6 +33,31 @@ func (m *mockCreateProjectGRPCClient) CreateProject(req *pb.CreateProjectRequest
 	}, nil
 }
 
+// Implement all required methods for UserGRPCClient interface
+func (m *mockCreateProjectGRPCClient) UpdateUser(req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
+	return nil, nil
+}
+
+func (m *mockCreateProjectGRPCClient) CreateUser(req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
+	return nil, nil
+}
+
+func (m *mockCreateProjectGRPCClient) GetUser(userID string) (*pb.GetUserResponse, error) {
+	return nil, nil
+}
+
+func (m *mockCreateProjectGRPCClient) ListUsers(page, limit int32, search string) (*pb.ListUsersResponse, error) {
+	return nil, nil
+}
+
+func (m *mockCreateProjectGRPCClient) DeleteUser(userID string) (*pb.DeleteUserResponse, error) {
+	return nil, nil
+}
+
+func (m *mockCreateProjectGRPCClient) ListUserProjects(userID string, page, limit int32, status pb.ProjectStatus) (*pb.ListUserProjectsResponse, error) {
+	return nil, nil
+}
+
 func (m *mockCreateProjectGRPCClient) GetProject(projectID string) (*pb.GetProjectResponse, error) {
 	return nil, nil
 }
@@ -51,8 +77,8 @@ func (m *mockCreateProjectGRPCClient) ListProjects(page, limit int32, search str
 func TestCreateProjectHandler_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	setMockGRPCClientForTest(&mockCreateProjectGRPCClient{})
-	r.POST("/projects", CreateProjectHandler)
+	user.SetGRPCClient(&mockCreateProjectGRPCClient{})
+	r.POST("/projects", user.CreateProjectHandler)
 
 	w := httptest.NewRecorder()
 	body := `{"name": "Test Project", "user_id": "u1", "description": "desc", "tags": ["a"], "config": "{}"}`
@@ -67,8 +93,8 @@ func TestCreateProjectHandler_Success(t *testing.T) {
 func TestCreateProjectHandler_Error(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	setMockGRPCClientForTest(&mockCreateProjectGRPCClient{})
-	r.POST("/projects", CreateProjectHandler)
+	user.SetGRPCClient(&mockCreateProjectGRPCClient{})
+	r.POST("/projects", user.CreateProjectHandler)
 
 	w := httptest.NewRecorder()
 	body := `{"name": "fail", "user_id": "u1"}`
