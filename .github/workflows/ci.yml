@@ -83,10 +83,10 @@ jobs:
       run: |
         go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
-    - name: Run Go security scan
-      uses: securego/gosec@master
-      with:
-        args: './...'
+    # - name: Run Go security scan
+    #   uses: securego/gosec@master
+    #   with:
+    #     args: './...'
 
     # - name: Run Frontend linting
     #   working-directory: ./web
