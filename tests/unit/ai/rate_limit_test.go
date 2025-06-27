@@ -8,10 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/time/rate"
+
+	"github.com/EliasRanz/ai-code-gen/internal/ai"
 )
 
 func TestRateLimiter(t *testing.T) {
-	rl := NewRateLimiter(rate.Limit(1), 1) // 1 request per second, burst of 1
+	rl := ai.NewRateLimiter(rate.Limit(1), 1) // 1 request per second, burst of 1
 
 	limiter1 := rl.GetLimiter("user1")
 	limiter2 := rl.GetLimiter("user2")
@@ -30,7 +32,7 @@ func TestRateLimiter(t *testing.T) {
 
 func TestRateLimitMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	rl := NewRateLimiter(rate.Limit(1), 1) // Very restrictive for testing
+	rl := ai.NewRateLimiter(rate.Limit(1), 1) // Very restrictive for testing
 
 	r := gin.New()
 	r.Use(rl.RateLimitMiddleware())
@@ -53,7 +55,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 }
 
 func TestQuotaManager(t *testing.T) {
-	qm := NewQuotaManager()
+	qm := ai.NewQuotaManager()
 	userID := "user1"
 	dailyLimit := 5
 
@@ -77,14 +79,14 @@ func TestQuotaManager(t *testing.T) {
 
 func TestQuotaMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	qm := NewQuotaManager()
+	qm := ai.NewQuotaManager()
 
 	r := gin.New()
 	r.Use(qm.QuotaMiddleware(1)) // Daily limit of 1 for testing
 	r.GET("/test", func(c *gin.Context) {
 		// Use quota in the handler
 		if qmCtx, exists := c.Get("quota_manager"); exists {
-			if quotaManager, ok := qmCtx.(*QuotaManager); ok {
+			if quotaManager, ok := qmCtx.(*ai.QuotaManager); ok {
 				if userID, exists := c.Get("user_id"); exists {
 					if uid, ok := userID.(string); ok {
 						quotaManager.UseQuota(uid)
@@ -111,8 +113,8 @@ func TestQuotaMiddleware(t *testing.T) {
 
 func TestGetQuotaEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	svc := NewService(&mockLLM{})
-	h := NewHandler(svc)
+	svc := ai.NewService(&mockLLM{})
+	h := ai.NewHandler(svc)
 	r := gin.New()
 	group := r.Group("")
 

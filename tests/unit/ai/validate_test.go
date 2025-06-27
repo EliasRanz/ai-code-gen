@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"strings"
+
+	"github.com/EliasRanz/ai-code-gen/internal/ai"
 )
 
 type mockValidateService struct{}
@@ -30,10 +32,10 @@ type mockValidateLLMClient struct{}
 func (m *mockValidateLLMClient) Generate(prompt string) (string, error) { return "", nil }
 func (m *mockValidateLLMClient) StreamGenerate(prompt string, responseChannel chan string) error { return nil }
 
-func newValidateTestHandler() *Handler {
+func newValidateTestHandler() *ai.Handler {
 	// Use the real Service with real validation logic
-	svc := NewService(&mockValidateLLMClient{})
-	return &Handler{service: svc}
+	svc := ai.NewService(&mockValidateLLMClient{})
+	return ai.NewHandler(svc)
 }
 
 func TestValidateCodeHandler_Success(t *testing.T) {
@@ -41,13 +43,13 @@ func TestValidateCodeHandler_Success(t *testing.T) {
 	h := newValidateTestHandler()
 	r := gin.Default()
 	r.POST("/ai/validate", h.ValidateCode)
-	body, _ := json.Marshal(ValidateRequest{Code: "good"})
+	body, _ := json.Marshal(ai.ValidateRequest{Code: "good"})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/ai/validate", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, 200, w.Code)
-	var resp ValidateResponse
+	var resp ai.ValidateResponse
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.True(t, resp.Valid)
 	assert.Empty(t, resp.Errors)
@@ -72,13 +74,13 @@ func TestValidateCodeHandler_Failure(t *testing.T) {
 	r := gin.Default()
 	r.POST("/ai/validate", h.ValidateCode)
 	// This code contains a <script> tag (security error)
-	body, _ := json.Marshal(ValidateRequest{Code: "<div><script>alert('x')</script>"})
+	body, _ := json.Marshal(ai.ValidateRequest{Code: "<div><script>alert('x')</script>"})
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/ai/validate", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, 200, w.Code)
-	var resp ValidateResponse
+	var resp ai.ValidateResponse
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.False(t, resp.Valid)
 	assert.True(t, len(resp.Errors) > 0)

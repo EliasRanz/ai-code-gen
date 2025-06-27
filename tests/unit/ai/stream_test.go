@@ -7,6 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/EliasRanz/ai-code-gen/internal/ai"
 )
 
 type mockStreamLLMClient struct{}
@@ -19,9 +21,9 @@ func (m *mockStreamLLMClient) StreamGenerate(prompt string, responseChannel chan
 	return nil
 }
 
-func newStreamTestHandler() *Handler {
-	svc := NewService(&mockStreamLLMClient{})
-	return &Handler{service: svc}
+func newStreamTestHandler() *ai.Handler {
+	svc := ai.NewService(&mockStreamLLMClient{})
+	return ai.NewHandler(svc)
 }
 
 func TestStreamHandler_Success(t *testing.T) {

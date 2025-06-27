@@ -9,12 +9,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/EliasRanz/ai-code-gen/internal/ai"
 )
 
 func TestModelSelectionEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	svc := NewService(&mockLLM{})
-	h := NewHandler(svc)
+	svc := ai.NewService(&mockLLM{})
+	h := ai.NewHandler(svc)
 	r := gin.New()
 	group := r.Group("")
 	h.RegisterRoutes(group)
@@ -22,7 +24,7 @@ func TestModelSelectionEndpoint(t *testing.T) {
 	// Test with model parameters
 	temp := 0.7
 	maxTokens := 100
-	req := GenerateRequest{
+	req := ai.GenerateRequest{
 		Prompt:      "create a button",
 		UserID:      "user1",
 		Model:       "gpt-4",
@@ -39,7 +41,7 @@ func TestModelSelectionEndpoint(t *testing.T) {
 
 	assert.Equal(t, 200, w.Code)
 	
-	var resp GenerateResponse
+	var resp ai.GenerateResponse
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Contains(t, resp.Code, "create a button")
@@ -47,8 +49,8 @@ func TestModelSelectionEndpoint(t *testing.T) {
 
 func TestStreamWithModelParams(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	svc := NewService(&mockLLM{})
-	h := NewHandler(svc)
+	svc := ai.NewService(&mockLLM{})
+	h := ai.NewHandler(svc)
 	r := gin.New()
 	group := r.Group("")
 	h.RegisterRoutes(group)
@@ -62,11 +64,11 @@ func TestStreamWithModelParams(t *testing.T) {
 }
 
 func TestGenerationParams(t *testing.T) {
-	svc := NewService(&mockLLM{})
+	svc := ai.NewService(&mockLLM{})
 	
 	temp := 0.8
 	maxTokens := 150
-	params := GenerationParams{
+	params := ai.GenerationParams{
 		Model:       "gpt-3.5-turbo",
 		Temperature: &temp,
 		MaxTokens:   &maxTokens,

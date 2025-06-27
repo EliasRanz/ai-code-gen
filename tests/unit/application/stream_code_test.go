@@ -11,6 +11,7 @@ import (
 
 	"github.com/EliasRanz/ai-code-gen/internal/domain/ai"
 	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
+	aiapp "github.com/EliasRanz/ai-code-gen/internal/application/ai"
 )
 
 // Mock implementations for testing
@@ -93,9 +94,9 @@ func TestStreamCodeUseCase_Execute_ModelNameCapture(t *testing.T) {
 	mockRateLimiter := new(MockRateLimiter)
 	mockPublisher := new(MockEventPublisher)
 
-	useCase := NewStreamCodeUseCase(mockRepo, mockLLM, mockRateLimiter, mockPublisher)
+	useCase := aiapp.NewStreamCodeUseCase(mockRepo, mockLLM, mockRateLimiter, mockPublisher)
 
-	request := StreamCodeRequest{
+	request := aiapp.StreamCodeRequest{
 		Prompt:     "Generate a React component",
 		Language:   "javascript",
 		Framework:  "react",
@@ -104,7 +105,7 @@ func TestStreamCodeUseCase_Execute_ModelNameCapture(t *testing.T) {
 	}
 
 	t.Run("should capture model name from stream chunks", func(t *testing.T) {
-		responseChan := make(chan StreamCodeResponse, 10)
+		responseChan := make(chan aiapp.StreamCodeResponse, 10)
 
 		// Setup quota check
 		quota := ai.QuotaStatus{
@@ -167,7 +168,7 @@ func TestStreamCodeUseCase_Execute_ModelNameCapture(t *testing.T) {
 		}()
 
 		// Collect responses
-		var responses []StreamCodeResponse
+		var responses []aiapp.StreamCodeResponse
 		for response := range responseChan {
 			responses = append(responses, response)
 		}
@@ -194,7 +195,7 @@ func TestStreamCodeUseCase_Execute_ModelNameCapture(t *testing.T) {
 	})
 
 	t.Run("should use fallback model name when not provided in chunks", func(t *testing.T) {
-		responseChan := make(chan StreamCodeResponse, 10)
+		responseChan := make(chan aiapp.StreamCodeResponse, 10)
 
 		// Reset mocks
 		mockRepo = new(MockRepository)
@@ -202,7 +203,7 @@ func TestStreamCodeUseCase_Execute_ModelNameCapture(t *testing.T) {
 		mockRateLimiter = new(MockRateLimiter)
 		mockPublisher = new(MockEventPublisher)
 
-		useCase = NewStreamCodeUseCase(mockRepo, mockLLM, mockRateLimiter, mockPublisher)
+		useCase = aiapp.NewStreamCodeUseCase(mockRepo, mockLLM, mockRateLimiter, mockPublisher)
 
 		// Setup quota check
 		quota := ai.QuotaStatus{
@@ -253,7 +254,7 @@ func TestStreamCodeUseCase_Execute_ModelNameCapture(t *testing.T) {
 		}()
 
 		// Collect responses
-		var responses []StreamCodeResponse
+		var responses []aiapp.StreamCodeResponse
 		for response := range responseChan {
 			responses = append(responses, response)
 		}
@@ -270,7 +271,7 @@ func TestStreamCodeUseCase_Execute_ModelNameCapture(t *testing.T) {
 	})
 
 	t.Run("should capture model from first chunk with model info", func(t *testing.T) {
-		responseChan := make(chan StreamCodeResponse, 10)
+		responseChan := make(chan aiapp.StreamCodeResponse, 10)
 
 		// Reset mocks
 		mockRepo = new(MockRepository)
@@ -278,7 +279,7 @@ func TestStreamCodeUseCase_Execute_ModelNameCapture(t *testing.T) {
 		mockRateLimiter = new(MockRateLimiter)
 		mockPublisher = new(MockEventPublisher)
 
-		useCase = NewStreamCodeUseCase(mockRepo, mockLLM, mockRateLimiter, mockPublisher)
+		useCase = aiapp.NewStreamCodeUseCase(mockRepo, mockLLM, mockRateLimiter, mockPublisher)
 
 		// Setup quota check
 		quota := ai.QuotaStatus{
@@ -335,7 +336,7 @@ func TestStreamCodeUseCase_Execute_ModelNameCapture(t *testing.T) {
 		}()
 
 		// Collect responses
-		var responses []StreamCodeResponse
+		var responses []aiapp.StreamCodeResponse
 		for response := range responseChan {
 			responses = append(responses, response)
 		}
@@ -362,16 +363,16 @@ func TestStreamCodeUseCase_Execute_ErrorHandling(t *testing.T) {
 		mockRateLimiter := new(MockRateLimiter)
 		mockPublisher := new(MockEventPublisher)
 
-		useCase := NewStreamCodeUseCase(mockRepo, mockLLM, mockRateLimiter, mockPublisher)
+		useCase := aiapp.NewStreamCodeUseCase(mockRepo, mockLLM, mockRateLimiter, mockPublisher)
 
-		request := StreamCodeRequest{
+		request := aiapp.StreamCodeRequest{
 			Prompt:     "Generate code",
 			Language:   "javascript",
 			Complexity: "simple",
 			UserID:     userID,
 		}
 
-		responseChan := make(chan StreamCodeResponse, 10)
+		responseChan := make(chan aiapp.StreamCodeResponse, 10)
 
 		// Setup quota check
 		quota := ai.QuotaStatus{
@@ -411,7 +412,7 @@ func TestStreamCodeUseCase_Execute_ErrorHandling(t *testing.T) {
 		}()
 
 		// Collect responses
-		var responses []StreamCodeResponse
+		var responses []aiapp.StreamCodeResponse
 		for response := range responseChan {
 			responses = append(responses, response)
 		}

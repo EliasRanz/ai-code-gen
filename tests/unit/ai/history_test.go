@@ -7,16 +7,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/EliasRanz/ai-code-gen/internal/ai"
 )
 
 type mockLLM struct{}
 func (m *mockLLM) Generate(prompt string) (string, error) { return "<div>" + prompt + "</div>", nil }
 func (m *mockLLM) StreamGenerate(prompt string, ch chan string) error { return nil }
 
-func setupHistoryTest() (*Handler, *Service, *gin.Engine) {
+func setupHistoryTest() (*ai.Handler, *ai.Service, *gin.Engine) {
 	gin.SetMode(gin.TestMode)
-	svc := NewService(&mockLLM{})
-	h := NewHandler(svc)
+	svc := ai.NewService(&mockLLM{})
+	h := ai.NewHandler(svc)
 	r := gin.New()
 	group := r.Group("")
 	h.RegisterRoutes(group)
