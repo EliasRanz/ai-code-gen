@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
 )
 
 // MockPasswordHasher for testing
@@ -29,7 +30,7 @@ func (m *MockPasswordHasher) Verify(password, hash string) bool {
 }
 
 func TestUser_SetPassword(t *testing.T) {
-	user := &User{
+	user := &user.User{
 		Email: "test@example.com",
 	}
 	hasher := &MockPasswordHasher{}
@@ -63,7 +64,7 @@ func TestUser_SetPassword(t *testing.T) {
 }
 
 func TestUser_VerifyPassword(t *testing.T) {
-	user := &User{
+	user := &user.User{
 		Email:        "test@example.com",
 		PasswordHash: "hashed_correctpassword",
 	}
@@ -96,7 +97,7 @@ func TestUser_VerifyPassword(t *testing.T) {
 }
 
 func TestUser_PasswordWorkflow(t *testing.T) {
-	user := &User{
+	user := &user.User{
 		Email: "test@example.com",
 	}
 	hasher := &MockPasswordHasher{}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
 	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
+	userapp "github.com/EliasRanz/ai-code-gen/internal/application/user"
 )
 
 // MockUserRepository for testing
@@ -61,7 +62,7 @@ func TestListUsersUseCase_Execute(t *testing.T) {
 			ID:       common.UserID("user1"),
 			Email:    "user1@example.com",
 			Username: "user1",
-			Name:     "User One",
+			Name:     "user.User One",
 			Active:   true,
 			Role:     user.RoleUser,
 			Status:   user.StatusActiveUser,
@@ -70,7 +71,7 @@ func TestListUsersUseCase_Execute(t *testing.T) {
 			ID:       common.UserID("user2"),
 			Email:    "user2@example.com",
 			Username: "user2",
-			Name:     "User Two",
+			Name:     "user.User Two",
 			Active:   true,
 			Role:     user.RoleUser,
 			Status:   user.StatusActiveUser,
@@ -79,9 +80,9 @@ func TestListUsersUseCase_Execute(t *testing.T) {
 
 	t.Run("successful listing with correct total count", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		useCase := NewListUsersUseCase(mockRepo)
+		useCase := userapp.NewListUsersUseCase(mockRepo)
 
-		request := ListUsersRequest{
+		request := userapp.ListUsersRequest{
 			Page:   1,
 			Limit:  10,
 			Search: "",
@@ -112,9 +113,9 @@ func TestListUsersUseCase_Execute(t *testing.T) {
 
 	t.Run("successful listing with search and correct count", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		useCase := NewListUsersUseCase(mockRepo)
+		useCase := userapp.NewListUsersUseCase(mockRepo)
 
-		request := ListUsersRequest{
+		request := userapp.ListUsersRequest{
 			Page:   1,
 			Limit:  10,
 			Search: "john",
@@ -147,9 +148,9 @@ func TestListUsersUseCase_Execute(t *testing.T) {
 
 	t.Run("list repository error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		useCase := NewListUsersUseCase(mockRepo)
+		useCase := userapp.NewListUsersUseCase(mockRepo)
 
-		request := ListUsersRequest{
+		request := userapp.ListUsersRequest{
 			Page:  1,
 			Limit: 10,
 		}
@@ -172,9 +173,9 @@ func TestListUsersUseCase_Execute(t *testing.T) {
 
 	t.Run("count repository error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		useCase := NewListUsersUseCase(mockRepo)
+		useCase := userapp.NewListUsersUseCase(mockRepo)
 
-		request := ListUsersRequest{
+		request := userapp.ListUsersRequest{
 			Page:  1,
 			Limit: 10,
 		}
@@ -198,9 +199,9 @@ func TestListUsersUseCase_Execute(t *testing.T) {
 
 	t.Run("default pagination values", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		useCase := NewListUsersUseCase(mockRepo)
+		useCase := userapp.NewListUsersUseCase(mockRepo)
 
-		request := ListUsersRequest{
+		request := userapp.ListUsersRequest{
 			Page:  0, // Should default to 1
 			Limit: 0, // Should default to 20
 		}
@@ -224,9 +225,9 @@ func TestListUsersUseCase_Execute(t *testing.T) {
 
 	t.Run("limit capping", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
-		useCase := NewListUsersUseCase(mockRepo)
+		useCase := userapp.NewListUsersUseCase(mockRepo)
 
-		request := ListUsersRequest{
+		request := userapp.ListUsersRequest{
 			Page:  1,
 			Limit: 150, // Should be capped to 100
 		}

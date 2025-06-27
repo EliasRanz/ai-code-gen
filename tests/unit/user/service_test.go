@@ -3,14 +3,78 @@ package user
 import (
 	"fmt"
 	"testing"
+	
+	"github.com/EliasRanz/ai-code-gen/internal/user"
 )
+
+// MockRepository implements the user.Repository interface for testing
+type MockRepository struct {
+	users map[string]*user.User
+}
+
+func NewMockRepository() *MockRepository {
+	return &MockRepository{
+		users: make(map[string]*user.User),
+	}
+}
+
+func (m *MockRepository) GetByID(id string) (*user.User, error) {
+	if user, exists := m.users[id]; exists {
+		return user, nil
+	}
+	return nil, nil
+}
+
+func (m *MockRepository) GetByEmail(email string) (*user.User, error) {
+	for _, user := range m.users {
+		if user.Email == email {
+			return user, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *MockRepository) Create(user *user.User) error {
+	m.users[user.ID] = user
+	return nil
+}
+
+func (m *MockRepository) Update(id string, updates map[string]interface{}) (*user.User, error) {
+	if user, exists := m.users[id]; exists {
+		// Apply updates to user (simplified for testing)
+		if name, ok := updates["name"]; ok {
+			user.Name = name.(string)
+		}
+		if email, ok := updates["email"]; ok {
+			user.Email = email.(string)
+		}
+		return user, nil
+	}
+	return nil, fmt.Errorf("user not found")
+}
+
+func (m *MockRepository) Delete(id string) error {
+	if _, exists := m.users[id]; exists {
+		delete(m.users, id)
+		return nil
+	}
+	return fmt.Errorf("user not found")
+}
+
+func (m *MockRepository) List(limit, offset int) ([]*user.User, error) {
+	users := make([]*user.User, 0, len(m.users))
+	for _, user := range m.users {
+		users = append(users, user)
+	}
+	return users, nil
+}
 
 func TestService_GetUser(t *testing.T) {
 	repo := NewMockRepository()
-	service := NewService(repo)
+	service := user.NewService(repo)
 	
 	// Setup test data
-	testUser := &User{
+	testUser := &user.User{
 		ID:    "user1",
 		Email: "test@example.com",
 		Name:  "Test User",
@@ -67,13 +131,13 @@ func TestService_GetUser(t *testing.T) {
 
 func TestService_UpdateUser(t *testing.T) {
 	repo := NewMockRepository()
-	service := NewService(repo)
+	service := user.NewService(repo)
 	
 	// Setup test data
-	testUser := &User{
+	testUser := &user.User{
 		ID:    "user1",
 		Email: "test@example.com",
-		Name:  "Test User",
+		Name:  "Test user.User",
 		Roles: []string{"user"},
 	}
 	repo.users["user1"] = testUser
@@ -144,11 +208,11 @@ func TestService_UpdateUser(t *testing.T) {
 
 func TestService_ListUsers(t *testing.T) {
 	repo := NewMockRepository()
-	service := NewService(repo)
+	service := user.NewService(repo)
 	
 	// Setup test data
 	for i := 1; i <= 5; i++ {
-		user := &User{
+		user := &user.User{
 			ID:    fmt.Sprintf("user%d", i),
 			Email: fmt.Sprintf("user%d@example.com", i),
 		}
@@ -200,9 +264,9 @@ func TestService_ListUsers(t *testing.T) {
 
 func TestService_RoleManagement(t *testing.T) {
 	repo := NewMockRepository()
-	service := NewService(repo)
+	service := user.NewService(repo)
 	
-	testUser := &User{
+	testUser := &user.User{
 		ID:    "user1",
 		Email: "test@example.com",
 		Roles: []string{"user"},
