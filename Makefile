@@ -16,6 +16,12 @@ install: ## Install dependencies
 	@echo "Installing frontend dependencies..."
 	cd web && npm install
 
+install-tools: ## Install development tools
+	@echo "Installing development tools..."
+	@which golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
+	@which gosec > /dev/null || (echo "Installing gosec..." && go install github.com/securego/gosec/v2/cmd/gosec@latest)
+	@echo "✅ Development tools installed"
+
 build: ## Build all services
 	@echo "Building Go services..."
 	go build -o bin/api-gateway ./cmd/api-gateway
@@ -33,9 +39,17 @@ test: ## Run all tests
 
 lint: ## Run linting
 	@echo "Running Go linting..."
+	@which golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
 	golangci-lint run
 	@echo "Running frontend linting..."
 	cd web && npm run lint
+
+lint-check: ## Run linting without failing the build
+	@echo "Running Go linting (check only)..."
+	@which golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
+	-golangci-lint run
+	@echo "Running frontend linting (check only)..."
+	-cd web && npm run lint
 
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
