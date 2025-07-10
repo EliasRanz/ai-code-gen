@@ -4,14 +4,11 @@ package database
 import (
 	"context"
 	"fmt"
-	
-	"gorm.io/driver/postgres"
+
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-	
+
 	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
 	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/config"
 )
 
 // PostgreSQLUserRepository implements the user.Repository interface using GORM
@@ -20,17 +17,7 @@ type PostgreSQLUserRepository struct {
 }
 
 // NewPostgreSQLUserRepository creates a new PostgreSQL user repository
-func NewPostgreSQLUserRepository(cfg config.DatabaseConfig) (*PostgreSQLUserRepository, error) {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Host, cfg.Port, cfg.Username, cfg.Password, cfg.Name, cfg.SSLMode)
-
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
-	}
-
+func NewPostgreSQLUserRepository(db *gorm.DB) (*PostgreSQLUserRepository, error) {
 	// Auto-migrate the schema
 	if err := db.AutoMigrate(&UserModel{}); err != nil {
 		return nil, fmt.Errorf("failed to migrate schema: %w", err)
@@ -121,12 +108,12 @@ func (r *PostgreSQLUserRepository) Delete(ctx context.Context, id common.UserID)
 func (r *PostgreSQLUserRepository) List(ctx context.Context, params common.PaginationParams, search string) ([]user.User, error) {
 	var userModels []UserModel
 	query := r.db.WithContext(ctx).Select("id, email, username, name, avatar_url, roles, role, active, status, created_at, updated_at")
-	
+
 	if search != "" {
 		searchPattern := "%" + search + "%"
 		query = query.Where("email ILIKE ? OR username ILIKE ? OR name ILIKE ?", searchPattern, searchPattern, searchPattern)
 	}
-	
+
 	if err := query.Order("created_at DESC").Limit(int(params.Limit)).Offset(int(params.Offset())).Find(&userModels).Error; err != nil {
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
@@ -145,12 +132,12 @@ func (r *PostgreSQLUserRepository) List(ctx context.Context, params common.Pagin
 func (r *PostgreSQLUserRepository) Count(ctx context.Context, search string) (int, error) {
 	var count int64
 	query := r.db.WithContext(ctx).Model(&UserModel{})
-	
+
 	if search != "" {
 		searchPattern := "%" + search + "%"
 		query = query.Where("email ILIKE ? OR username ILIKE ? OR name ILIKE ?", searchPattern, searchPattern, searchPattern)
 	}
-	
+
 	if err := query.Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("failed to count users: %w", err)
 	}

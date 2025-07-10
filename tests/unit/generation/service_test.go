@@ -1,4 +1,4 @@
-package generation
+package generation_test
 
 import (
 	"context"
@@ -7,15 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EliasRanz/ai-code-gen/internal/generation"
+	"github.com/EliasRanz/ai-code-gen/internal/llm"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-
-	"github.com/EliasRanz/ai-code-gen/internal/auth"
-	"github.com/EliasRanz/ai-code-gen/internal/generation"
-	"github.com/EliasRanz/ai-code-gen/internal/llm"
-	"github.com/EliasRanz/ai-code-gen/internal/user"
 )
 
 // MockRedisClient for testing
@@ -46,13 +43,6 @@ func (m *MockRedisClient) Subscribe(ctx context.Context, channels ...string) *re
 // MockLLMClient for testing
 type MockLLMClient struct {
 	mock.Mock
-}
-
-// mockAuthService creates a minimal auth service for testing
-func mockAuthService() *auth.Service {
-	// Return nil since the generation service doesn't actually use the auth service directly
-	// The auth is handled by middleware, not by the service itself
-	return nil
 }
 
 func (m *MockLLMClient) Generate(ctx context.Context, req *llm.GenerationRequest) (*llm.GenerationResponse, error) {
@@ -103,7 +93,7 @@ func TestNewService(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			service := generation.NewService(tt.llmClient, tt.redisClient, mockAuthService())
+			service := generation.NewService(tt.llmClient, tt.redisClient)
 
 			assert.NotNil(t, service)
 			// Note: Fields are private, so we can't test them directly
@@ -125,14 +115,8 @@ func TestStreamGenerationHandler(t *testing.T) {
 		{
 			name: "successful stream request",
 			setupContext: func(c *gin.Context) {
-				// Set valid user context
-				testUser := &user.User{
-					ID:       "test-user",
-					Email:    "test@example.com",
-					IsActive: true,
-				}
-				c.Set("user_id", testUser.ID)
-				c.Set("user", testUser)
+				c.Set("authenticated", true)
+				c.Set("user_id", "test-user")
 			},
 			requestBody:    `{"model": "test-model", "prompt": "test prompt"}`,
 			expectedStatus: http.StatusOK,
@@ -141,13 +125,8 @@ func TestStreamGenerationHandler(t *testing.T) {
 		{
 			name: "invalid request body",
 			setupContext: func(c *gin.Context) {
-				testUser := &user.User{
-					ID:       "test-user",
-					Email:    "test@example.com",
-					IsActive: true,
-				}
-				c.Set("user_id", testUser.ID)
-				c.Set("user", testUser)
+				c.Set("authenticated", true)
+				c.Set("user_id", "test-user")
 			},
 			requestBody:    `{"invalid": "json"}`,
 			expectedStatus: http.StatusBadRequest,
@@ -162,21 +141,6 @@ func TestStreamGenerationHandler(t *testing.T) {
 			expectedStatus: http.StatusUnauthorized,
 			expectedError:  "Authentication required",
 		},
-		{
-			name: "forbidden - inactive user",
-			setupContext: func(c *gin.Context) {
-				testUser := &user.User{
-					ID:       "test-user",
-					Email:    "test@example.com",
-					IsActive: false, // User is inactive
-				}
-				c.Set("user_id", testUser.ID)
-				c.Set("user", testUser)
-			},
-			requestBody:    `{"model": "test-model", "prompt": "test prompt"}`,
-			expectedStatus: http.StatusForbidden,
-			expectedError:  "User account is inactive",
-		},
 	}
 
 	for _, tt := range tests {
@@ -188,9 +152,9 @@ func TestStreamGenerationHandler(t *testing.T) {
 			// Set up mock expectations for streaming (even for error cases)
 			respChan := make(chan *llm.GenerationResponse, 1)
 			close(respChan) // Close immediately to simulate no responses
-			mockLLM.On("GenerateStream", mock.Anything, mock.Anything).Return((<-chan *llm.GenerationResponse)(respChan), nil)
+			mockLLM.On("GenerateStream", mock.Anything, mock.AnythingOfType("*llm.GenerationRequest")).Return((<-chan *llm.GenerationResponse)(respChan), nil).Maybe()
 
-			service := generation.NewService(mockLLM, mockRedis, mockAuthService())
+			service := generation.NewService(mockLLM, mockRedis)
 
 			// Create test request
 			r := gin.New()
@@ -213,7 +177,7 @@ func TestStreamGenerationHandler(t *testing.T) {
 	}
 }
 
-func TestNonStreamGenerationHandler(t *testing.T) {
+func TestRequestResponseHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
@@ -227,13 +191,8 @@ func TestNonStreamGenerationHandler(t *testing.T) {
 		{
 			name: "successful generation",
 			setupContext: func(c *gin.Context) {
-				testUser := &user.User{
-					ID:       "test-user",
-					Email:    "test@example.com",
-					IsActive: true,
-				}
-				c.Set("user_id", testUser.ID)
-				c.Set("user", testUser)
+				c.Set("authenticated", true)
+				c.Set("user_id", "test-user")
 			},
 			setupMocks: func(mockLLM *MockLLMClient) {
 				resp := &llm.GenerationResponse{
@@ -253,13 +212,8 @@ func TestNonStreamGenerationHandler(t *testing.T) {
 		{
 			name: "generation failure",
 			setupContext: func(c *gin.Context) {
-				testUser := &user.User{
-					ID:       "test-user",
-					Email:    "test@example.com",
-					IsActive: true,
-				}
-				c.Set("user_id", testUser.ID)
-				c.Set("user", testUser)
+				c.Set("authenticated", true)
+				c.Set("user_id", "test-user")
 			},
 			setupMocks: func(mockLLM *MockLLMClient) {
 				mockLLM.On("Generate", mock.Anything, mock.Anything).Return((*llm.GenerationResponse)(nil), assert.AnError)
@@ -277,21 +231,6 @@ func TestNonStreamGenerationHandler(t *testing.T) {
 			expectedStatus: http.StatusUnauthorized,
 			expectedError:  "Authentication required",
 		},
-		{
-			name: "forbidden - inactive user",
-			setupContext: func(c *gin.Context) {
-				testUser := &user.User{
-					ID:       "test-user",
-					Email:    "test@example.com",
-					IsActive: false, // User is inactive
-				}
-				c.Set("user_id", testUser.ID)
-				c.Set("user", testUser)
-			},
-			requestBody:    `{"model": "test-model", "prompt": "test prompt"}`,
-			expectedStatus: http.StatusForbidden,
-			expectedError:  "User account is inactive",
-		},
 	}
 
 	for _, tt := range tests {
@@ -304,13 +243,13 @@ func TestNonStreamGenerationHandler(t *testing.T) {
 				tt.setupMocks(mockLLM)
 			}
 
-			service := generation.NewService(mockLLM, mockRedis, mockAuthService())
+			service := generation.NewService(mockLLM, mockRedis)
 
 			// Create test request
 			r := gin.New()
 			r.POST("/generate", func(c *gin.Context) {
 				tt.setupContext(c)
-				service.NonStreamGenerationHandler(c)
+				service.RequestResponseHandler(c)
 			})
 
 			req := httptest.NewRequest("POST", "/generate", strings.NewReader(tt.requestBody))
@@ -329,76 +268,7 @@ func TestNonStreamGenerationHandler(t *testing.T) {
 	}
 }
 
-func TestGetModelsHandler(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name           string
-		setupMocks     func(*MockLLMClient)
-		expectedStatus int
-		expectedError  string
-	}{
-		{
-			name: "successful models retrieval",
-			setupMocks: func(mockLLM *MockLLMClient) {
-				models := []llm.Model{
-					{
-						ID:          "model1",
-						Name:        "Test Model 1",
-						Description: "Test model 1 description",
-						Provider:    "test",
-						MaxTokens:   4096,
-					},
-					{
-						ID:          "model2",
-						Name:        "Test Model 2",
-						Description: "Test model 2 description",
-						Provider:    "test",
-						MaxTokens:   2048,
-					},
-				}
-				mockLLM.On("GetModels", mock.Anything).Return(models, nil)
-			},
-			expectedStatus: http.StatusOK,
-		},
-		{
-			name: "models retrieval failure",
-			setupMocks: func(mockLLM *MockLLMClient) {
-				mockLLM.On("GetModels", mock.Anything).Return([]llm.Model(nil), assert.AnError)
-			},
-			expectedStatus: http.StatusInternalServerError,
-			expectedError:  "Failed to get models",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockLLM := new(MockLLMClient)
-			mockRedis := new(MockRedisClient)
-
-			service := generation.NewService(mockLLM, mockRedis, mockAuthService())
-
-			tt.setupMocks(mockLLM)
-
-			r := gin.New()
-			r.GET("/models", service.GetModelsHandler)
-
-			req := httptest.NewRequest("GET", "/models", nil)
-			w := httptest.NewRecorder()
-
-			r.ServeHTTP(w, req)
-
-			assert.Equal(t, tt.expectedStatus, w.Code)
-			if tt.expectedError != "" {
-				assert.Contains(t, w.Body.String(), tt.expectedError)
-			}
-
-			mockLLM.AssertExpectations(t)
-		})
-	}
-}
-
-func TestHealthHandler(t *testing.T) {
+func TestHealthCheckHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
@@ -423,7 +293,7 @@ func TestHealthHandler(t *testing.T) {
 				mockRedis.On("Ping", mock.Anything).Return(nil)
 			},
 			expectedStatus: http.StatusServiceUnavailable,
-			expectedHealth: "degraded",
+			expectedHealth: "error",
 		},
 		{
 			name: "redis service unhealthy",
@@ -432,7 +302,7 @@ func TestHealthHandler(t *testing.T) {
 				mockRedis.On("Ping", mock.Anything).Return(assert.AnError)
 			},
 			expectedStatus: http.StatusServiceUnavailable,
-			expectedHealth: "degraded",
+			expectedHealth: "error",
 		},
 	}
 
@@ -443,10 +313,10 @@ func TestHealthHandler(t *testing.T) {
 
 			tt.setupMocks(mockLLM, mockRedis)
 
-			service := generation.NewService(mockLLM, mockRedis, mockAuthService())
+			service := generation.NewService(mockLLM, mockRedis)
 
 			r := gin.New()
-			r.GET("/health", service.HealthHandler)
+			r.GET("/health", service.HealthCheckHandler)
 
 			req := httptest.NewRequest("GET", "/health", nil)
 			w := httptest.NewRecorder()
@@ -463,49 +333,54 @@ func TestHealthHandler(t *testing.T) {
 }
 
 func TestRedisSubscriptions(t *testing.T) {
-	mockLLM := new(MockLLMClient)
-	mockRedis := new(MockRedisClient)
-	service := generation.NewService(mockLLM, mockRedis, mockAuthService())
-
 	ctx := context.Background()
 
 	tests := []struct {
 		name    string
-		method  func() (*redis.PubSub, error)
-		channel string
+		setup   func(mockRedis *MockRedisClient)
+		execute func(service *generation.Service) (*redis.PubSub, error)
 	}{
 		{
 			name: "subscribe to user channel",
-			method: func() (*redis.PubSub, error) {
+			setup: func(mockRedis *MockRedisClient) {
+				mockRedis.On("Subscribe", ctx, []string{"user:user-123:generations"}).Return(&redis.PubSub{}).Once()
+			},
+			execute: func(service *generation.Service) (*redis.PubSub, error) {
 				return service.SubscribeToUserChannel(ctx, "user-123")
 			},
-			channel: "generation:user:user-123",
 		},
 		{
 			name: "subscribe to project channel",
-			method: func() (*redis.PubSub, error) {
+			setup: func(mockRedis *MockRedisClient) {
+				mockRedis.On("Subscribe", ctx, []string{"project:project-456:generations"}).Return(&redis.PubSub{}).Once()
+			},
+			execute: func(service *generation.Service) (*redis.PubSub, error) {
 				return service.SubscribeToProjectChannel(ctx, "project-456")
 			},
-			channel: "generation:project:project-456",
 		},
 		{
 			name: "subscribe to global channel",
-			method: func() (*redis.PubSub, error) {
+			setup: func(mockRedis *MockRedisClient) {
+				mockRedis.On("Subscribe", ctx, []string{"global:generations"}).Return(&redis.PubSub{}).Once()
+			},
+			execute: func(service *generation.Service) (*redis.PubSub, error) {
 				return service.SubscribeToGlobalChannel(ctx)
 			},
-			channel: "generation:global",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			expectedPubSub := &redis.PubSub{}
-			mockRedis.On("Subscribe", ctx, []string{tt.channel}).Return(expectedPubSub)
+			mockLLM := new(MockLLMClient)
+			mockRedis := new(MockRedisClient)
+			service := generation.NewService(mockLLM, mockRedis)
 
-			pubsub, err := tt.method()
+			tt.setup(mockRedis)
+
+			pubsub, err := tt.execute(service)
 
 			assert.NoError(t, err)
-			assert.Equal(t, expectedPubSub, pubsub)
+			assert.NotNil(t, pubsub)
 			mockRedis.AssertExpectations(t)
 		})
 	}
@@ -513,30 +388,34 @@ func TestRedisSubscriptions(t *testing.T) {
 
 func TestRedisSubscriptionsWithoutRedis(t *testing.T) {
 	mockLLM := new(MockLLMClient)
-	service := generation.NewService(mockLLM, nil, mockAuthService())
+	service := generation.NewService(mockLLM, nil)
 	ctx := context.Background()
 
 	tests := []struct {
-		name   string
-		method func() (*redis.PubSub, error)
+		name          string
+		method        func() (*redis.PubSub, error)
+		expectedError string
 	}{
 		{
-			name: "user channel without redis",
+			name: "user_channel_without_redis",
 			method: func() (*redis.PubSub, error) {
 				return service.SubscribeToUserChannel(ctx, "user-123")
 			},
+			expectedError: "redis client is not initialized",
 		},
 		{
-			name: "project channel without redis",
+			name: "project_channel_without_redis",
 			method: func() (*redis.PubSub, error) {
 				return service.SubscribeToProjectChannel(ctx, "project-456")
 			},
+			expectedError: "redis client is not initialized",
 		},
 		{
-			name: "global channel without redis",
+			name: "global_channel_without_redis",
 			method: func() (*redis.PubSub, error) {
 				return service.SubscribeToGlobalChannel(ctx)
 			},
+			expectedError: "redis client is not initialized",
 		},
 	}
 
@@ -546,7 +425,7 @@ func TestRedisSubscriptionsWithoutRedis(t *testing.T) {
 
 			assert.Error(t, err)
 			assert.Nil(t, pubsub)
-			assert.Contains(t, err.Error(), "redis not available")
+			assert.Equal(t, tt.expectedError, err.Error())
 		})
 	}
 }

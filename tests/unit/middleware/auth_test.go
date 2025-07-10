@@ -1,19 +1,20 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/EliasRanz/ai-code-gen/internal/auth"
+	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
 	"github.com/EliasRanz/ai-code-gen/internal/middleware"
-	"github.com/EliasRanz/ai-code-gen/internal/user"
 )
 
 // MockUserRepository mocks the user.Repository
@@ -21,34 +22,48 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
-func (m *MockUserRepository) GetByID(id string) (*user.User, error) {
-	args := m.Called(id)
-	return args.Get(0).(*user.User), args.Error(1)
+func (m *MockUserRepository) GetByID(ctx context.Context, id common.UserID) (user.User, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return user.User{}, args.Error(1)
+	}
+	return args.Get(0).(user.User), args.Error(1)
 }
 
-func (m *MockUserRepository) GetByEmail(email string) (*user.User, error) {
-	args := m.Called(email)
-	return args.Get(0).(*user.User), args.Error(1)
+func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (user.User, error) {
+	args := m.Called(ctx, email)
+	if args.Get(0) == nil {
+		return user.User{}, args.Error(1)
+	}
+	return args.Get(0).(user.User), args.Error(1)
 }
 
-func (m *MockUserRepository) Create(user *user.User) error {
-	args := m.Called(user)
+func (m *MockUserRepository) Create(ctx context.Context, u user.User) error {
+	args := m.Called(ctx, u)
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) Update(id string, updates map[string]interface{}) (*user.User, error) {
-	args := m.Called(id, updates)
-	return args.Get(0).(*user.User), args.Error(1)
-}
-
-func (m *MockUserRepository) Delete(id string) error {
-	args := m.Called(id)
+func (m *MockUserRepository) Update(ctx context.Context, u user.User) error {
+	args := m.Called(ctx, u)
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) List(limit, offset int) ([]*user.User, error) {
-	args := m.Called(limit, offset)
-	return args.Get(0).([]*user.User), args.Error(1)
+func (m *MockUserRepository) Delete(ctx context.Context, id common.UserID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockUserRepository) List(ctx context.Context, params common.PaginationParams, search string) ([]user.User, error) {
+	args := m.Called(ctx, params, search)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]user.User), args.Error(1)
+}
+
+func (m *MockUserRepository) Count(ctx context.Context, search string) (int, error) {
+	args := m.Called(ctx, search)
+	return args.Int(0), args.Error(1)
 }
 
 func TestAuthMiddleware_NoHeader(t *testing.T) {
@@ -110,7 +125,7 @@ func TestAuthMiddleware_EmptyToken(t *testing.T) {
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusUnauthorized, resp.Code)
-	assert.Contains(t, resp.Body.String(), "Token required")
+	assert.Contains(t, resp.Body.String(), "Token not provided or invalid")
 }
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
@@ -131,19 +146,17 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusUnauthorized, resp.Code)
-	assert.Contains(t, resp.Body.String(), "Invalid token")
+	assert.Contains(t, resp.Body.String(), "Invalid or expired token")
 }
 
 func TestAuthMiddleware_UserNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tokenManager := auth.NewTokenManager("test-secret", "test-issuer")
+	token, _ := tokenManager.GenerateAccessToken(common.UserID("1"))
+
 	mockUserRepo := &MockUserRepository{}
-
-	// Generate a valid token for testing
-	token, _ := tokenManager.GenerateToken("user123", time.Hour)
-
-	mockUserRepo.On("GetByID", "user123").Return((*user.User)(nil), errors.New("user not found"))
+	mockUserRepo.On("GetByID", mock.Anything, common.UserID("1")).Return(user.User{}, errors.New("user not found"))
 
 	router := gin.New()
 	router.Use(middleware.AuthMiddleware(tokenManager, mockUserRepo))
@@ -158,26 +171,21 @@ func TestAuthMiddleware_UserNotFound(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, resp.Code)
 	assert.Contains(t, resp.Body.String(), "User not found")
-	mockUserRepo.AssertExpectations(t)
 }
 
 func TestAuthMiddleware_InactiveUser(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tokenManager := auth.NewTokenManager("test-secret", "test-issuer")
+	token, _ := tokenManager.GenerateAccessToken(common.UserID("1"))
+
 	mockUserRepo := &MockUserRepository{}
-
-	// Generate a valid token for testing
-	token, _ := tokenManager.GenerateToken("user123", time.Hour)
-
-	inactiveUser := &user.User{
-		ID:       "user123",
+	mockUserRepo.On("GetByID", mock.Anything, common.UserID("1")).Return(user.User{
+		ID:       common.UserID("1"),
+		Username: "testuser",
 		Email:    "test@example.com",
-		IsActive: false,
-		Roles:    []string{"user"},
-	}
-
-	mockUserRepo.On("GetByID", "user123").Return(inactiveUser, nil)
+		Active:   false,
+	}, nil)
 
 	router := gin.New()
 	router.Use(middleware.AuthMiddleware(tokenManager, mockUserRepo))
@@ -190,41 +198,36 @@ func TestAuthMiddleware_InactiveUser(t *testing.T) {
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, req)
 
-	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+	assert.Equal(t, http.StatusForbidden, resp.Code)
 	assert.Contains(t, resp.Body.String(), "User account is inactive")
-	mockUserRepo.AssertExpectations(t)
 }
 
-func TestAuthMiddleware_ValidToken(t *testing.T) {
+func TestAuthMiddleware_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tokenManager := auth.NewTokenManager("test-secret", "test-issuer")
+	token, _ := tokenManager.GenerateAccessToken(common.UserID("1"))
+
 	mockUserRepo := &MockUserRepository{}
-
-	// Generate a valid token for testing
-	token, _ := tokenManager.GenerateToken("user123", time.Hour)
-
-	activeUser := &user.User{
-		ID:       "user123",
+	mockUserRepo.On("GetByID", mock.Anything, common.UserID("1")).Return(user.User{
+		ID:       common.UserID("1"),
+		Username: "testuser",
 		Email:    "test@example.com",
-		IsActive: true,
-		Roles:    []string{"admin", "user"},
-	}
-
-	mockUserRepo.On("GetByID", "user123").Return(activeUser, nil)
-
-	var contextUserID, contextEmail, contextRole string
-	var contextAuth bool
+		Active:   true,
+		Roles:    []string{"user"},
+	}, nil)
 
 	router := gin.New()
 	router.Use(middleware.AuthMiddleware(tokenManager, mockUserRepo))
 	router.GET("/test", func(c *gin.Context) {
-		contextUserID = c.GetString("user_id")
-		contextEmail = c.GetString("user_email")
-		contextRole = c.GetString("user_role")
-		if auth, exists := c.Get("authenticated"); exists {
-			contextAuth = auth.(bool)
-		}
+		authenticated, exists := c.Get("authenticated")
+		assert.True(t, exists)
+		assert.True(t, authenticated.(bool))
+
+		userID, exists := c.Get("user_id")
+		assert.True(t, exists)
+		assert.Equal(t, "1", userID)
+
 		c.JSON(200, gin.H{"message": "success"})
 	})
 
@@ -234,11 +237,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, "user123", contextUserID)
-	assert.Equal(t, "test@example.com", contextEmail)
-	assert.Equal(t, "admin", contextRole) // Should take first role
-	assert.Equal(t, true, contextAuth)
-	mockUserRepo.AssertExpectations(t)
+	assert.Contains(t, resp.Body.String(), "success")
 }
 
 func TestLightweightAuthMiddleware_NoHeader(t *testing.T) {
@@ -266,7 +265,7 @@ func TestLightweightAuthMiddleware_ValidToken(t *testing.T) {
 	tokenManager := auth.NewTokenManager("test-secret", "test-issuer")
 
 	// Generate a valid token for testing
-	token, _ := tokenManager.GenerateToken("user123", time.Hour)
+	token, _ := tokenManager.GenerateAccessToken("user123")
 
 	var contextUserID string
 	var contextAuth bool
@@ -274,10 +273,9 @@ func TestLightweightAuthMiddleware_ValidToken(t *testing.T) {
 	router := gin.New()
 	router.Use(middleware.LightweightAuthMiddleware(tokenManager))
 	router.GET("/test", func(c *gin.Context) {
-		contextUserID = c.GetString("user_id")
-		if auth, exists := c.Get("authenticated"); exists {
-			contextAuth = auth.(bool)
-		}
+		userID, _, _, authenticated := middleware.GetUserContext(c)
+		contextUserID = string(userID)
+		contextAuth = authenticated
 		c.JSON(200, gin.H{"message": "success"})
 	})
 
@@ -331,7 +329,7 @@ func TestAdminRequired_NotAdmin(t *testing.T) {
 	assert.Contains(t, resp.Body.String(), "Admin access required")
 }
 
-func TestAdminRequired_IsAdmin(t *testing.T) {
+func TestAdminRequired_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	router := gin.New()

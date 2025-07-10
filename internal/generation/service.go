@@ -1,7 +1,6 @@
 package generation
 
 import (
-	"github.com/EliasRanz/ai-code-gen/internal/auth"
 	"github.com/EliasRanz/ai-code-gen/internal/llm"
 )
 
@@ -21,17 +20,15 @@ type RedisConfig struct {
 
 // Service provides AI generation functionality
 type Service struct {
-	llmClient    llm.LLMClient
-	redisClient  RedisClient
-	authService  *auth.Service
+	llmClient   llm.LLMClient
+	redisClient RedisClient
 }
 
-// NewService creates a new generation service  
-func NewService(llmClient llm.LLMClient, redisClient RedisClient, authService *auth.Service) *Service {
+// NewService creates a new generation service
+func NewService(llmClient llm.LLMClient, redisClient RedisClient) *Service {
 	return &Service{
 		llmClient:   llmClient,
 		redisClient: redisClient,
-		authService: authService,
 	}
 }
 
@@ -46,7 +43,7 @@ func (s *Service) Close() error {
 		}
 	}
 
-	// Close LLM client connection  
+	// Close LLM client connection
 	if s.llmClient != nil {
 		if closeErr := s.llmClient.Close(); closeErr != nil {
 			err = closeErr

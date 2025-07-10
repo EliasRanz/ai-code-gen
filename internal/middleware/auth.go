@@ -2,13 +2,14 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
+	"github.com/EliasRanz/ai-code-gen/internal/auth"
+	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-	
-	"github.com/EliasRanz/ai-code-gen/internal/auth"
-	"github.com/EliasRanz/ai-code-gen/internal/user"
 )
 
 // AuthMiddleware validates JWT tokens with full user context (for services with database access)
@@ -32,28 +33,28 @@ func AuthMiddleware(tokenManager *auth.TokenManager, userRepo user.Repository) g
 		// Extract token
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token required"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token not provided or invalid"})
 			c.Abort()
 			return
 		}
 
 		// Validate JWT token
-		userID, err := tokenManager.ValidateToken(token)
+		userID, err := tokenManager.ValidateAccessToken(token)
 		if err != nil {
 			log.Debug().
 				Str("token_prefix", token[:min(10, len(token))]).
 				Err(err).
 				Msg("JWT token validation failed")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
 			return
 		}
 
 		// Get user details from repository
-		userData, err := userRepo.GetByID(userID)
+		userData, err := userRepo.GetByID(c.Request.Context(), userID)
 		if err != nil {
 			log.Debug().
-				Str("user_id", userID).
+				Str("user_id", string(userID)).
 				Err(err).
 				Msg("Failed to get user details")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
@@ -62,11 +63,11 @@ func AuthMiddleware(tokenManager *auth.TokenManager, userRepo user.Repository) g
 		}
 
 		// Check if user is active
-		if !userData.IsActive {
+		if !userData.Active {
 			log.Debug().
-				Str("user_id", userID).
+				Str("user_id", string(userID)).
 				Msg("Inactive user attempted authentication")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User account is inactive"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "User account is inactive"})
 			c.Abort()
 			return
 		}
@@ -78,13 +79,13 @@ func AuthMiddleware(tokenManager *auth.TokenManager, userRepo user.Repository) g
 		}
 
 		// Set user context from validated JWT claims
-		c.Set("user_id", userID)
+		c.Set("user_id", string(userID))
 		c.Set("user_email", userData.Email)
 		c.Set("user_role", userRole)
 		c.Set("authenticated", true)
 
 		log.Debug().
-			Str("user_id", userID).
+			Str("user_id", string(userID)).
 			Str("user_email", userData.Email).
 			Str("user_role", userRole).
 			Msg("User authenticated successfully")
@@ -114,41 +115,29 @@ func LightweightAuthMiddleware(tokenManager *auth.TokenManager) gin.HandlerFunc 
 		// Extract token
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token required"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token not provided or invalid"})
 			c.Abort()
 			return
 		}
 
 		// Validate JWT token
-		userID, err := tokenManager.ValidateToken(token)
+		userID, err := tokenManager.ValidateAccessToken(token)
 		if err != nil {
 			log.Debug().
 				Str("token_prefix", token[:min(10, len(token))]).
 				Err(err).
 				Msg("JWT token validation failed")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
 			return
 		}
 
 		// Set minimal user context from validated JWT claims
-		c.Set("user_id", userID)
+		c.Set("user_id", string(userID))
 		c.Set("authenticated", true)
 
-		// Try to extract additional claims from the token for convenience
-		if claims, err := tokenManager.ParseToken(token); err == nil {
-			if email, ok := claims["email"].(string); ok {
-				c.Set("user_email", email)
-			}
-			if role, ok := claims["role"].(string); ok {
-				c.Set("user_role", role)
-			} else {
-				c.Set("user_role", "user") // default role
-			}
-		}
-
 		log.Debug().
-			Str("user_id", userID).
+			Str("user_id", string(userID)).
 			Msg("User authenticated successfully (lightweight)")
 
 		c.Next()
@@ -169,11 +158,11 @@ func OptionalAuth(tokenManager *auth.TokenManager, userRepo user.Repository) gin
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 			if token != "" {
 				// Validate token and set user context if valid
-				userID, err := tokenManager.ValidateToken(token)
+				userID, err := tokenManager.ValidateAccessToken(token)
 				if err == nil {
 					// Get user details from repository
-					userData, err := userRepo.GetByID(userID)
-					if err == nil && userData.IsActive {
+					userData, err := userRepo.GetByID(c.Request.Context(), userID)
+					if err == nil && userData.Active {
 						// Determine user role (take first role if multiple, default to "user")
 						userRole := "user"
 						if len(userData.Roles) > 0 {
@@ -181,21 +170,27 @@ func OptionalAuth(tokenManager *auth.TokenManager, userRepo user.Repository) gin
 						}
 
 						// Set user context from validated JWT claims
-						c.Set("user_id", userID)
+						c.Set("user_id", string(userID))
 						c.Set("user_email", userData.Email)
 						c.Set("user_role", userRole)
 						c.Set("authenticated", true)
 
+						// Log successful auth for debugging
+						uid, _ := strconv.ParseUint(string(userID), 10, 64)
 						log.Debug().
-							Str("user_id", userID).
-							Str("user_email", userData.Email).
+							Str("method", c.Request.Method).
+							Str("path", c.Request.URL.Path).
+							Uint64("user_id", uid).
 							Str("user_role", userRole).
-							Msg("Optional auth: User authenticated successfully")
+							Msg("Authenticated request (optional)")
 					} else {
+						// Log failed auth for debugging
+						uid, _ := strconv.ParseUint(string(userID), 10, 64)
 						log.Debug().
-							Str("user_id", userID).
-							Err(err).
-							Msg("Optional auth: Failed to get user details or user inactive")
+							Str("method", c.Request.Method).
+							Str("path", c.Request.URL.Path).
+							Uint64("user_id", uid).
+							Msg("User inactive or not found (optional auth)")
 					}
 				} else {
 					log.Debug().
@@ -242,7 +237,7 @@ func AdminRequired() gin.HandlerFunc {
 		}
 
 		log.Debug().
-			Str("user_id", c.GetString("user_id")).
+			Str("user_id", string(c.GetString("user_id"))).
 			Msg("Admin access granted")
 		c.Next()
 	}
@@ -298,10 +293,10 @@ func RequireAuthentication() gin.HandlerFunc {
 }
 
 // GetUserContext extracts user information from context
-func GetUserContext(c *gin.Context) (userID, email, role string, authenticated bool) {
+func GetUserContext(c *gin.Context) (userID common.UserID, email, role string, authenticated bool) {
 	if auth, exists := c.Get("authenticated"); exists && auth.(bool) {
 		if uid, exists := c.Get("user_id"); exists {
-			userID = uid.(string)
+			userID = common.UserID(uid.(string))
 		}
 		if em, exists := c.Get("user_email"); exists {
 			email = em.(string)
@@ -331,4 +326,87 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// LightweightAuthMiddlewareWithClaims validates JWT tokens and extracts claims (for services needing claim data)
+func LightweightAuthMiddlewareWithClaims(tokenManager *auth.TokenManager, userRepo user.Repository, roles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get the Authorization header
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+			c.Abort()
+			return
+		}
+
+		// Check for Bearer token
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
+			c.Abort()
+			return
+		}
+
+		// Extract token
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if token == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token not provided or invalid"})
+			c.Abort()
+			return
+		}
+
+		// Validate token
+		userID, err := tokenManager.ValidateAccessToken(token)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.Abort()
+			return
+		}
+
+		// Get user details from repository
+		userData, err := userRepo.GetByID(c.Request.Context(), userID)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			c.Abort()
+			return
+		}
+
+		// Check if user is active
+		if !userData.Active {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User account is inactive"})
+			c.Abort()
+			return
+		}
+
+		// Check user role
+		userRole := "user"
+		if len(userData.Roles) > 0 {
+			userRole = userData.Roles[0]
+		}
+
+		roleMatch := false
+		if len(roles) == 0 {
+			roleMatch = true // No specific roles required
+		} else {
+			for _, r := range roles {
+				if userRole == r {
+					roleMatch = true
+					break
+				}
+			}
+		}
+
+		if !roleMatch {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+			c.Abort()
+			return
+		}
+
+		// Set user context
+		c.Set("user_id", string(userID))
+		c.Set("user_email", userData.Email)
+		c.Set("user_role", userRole)
+		c.Set("authenticated", true)
+
+		c.Next()
+	}
 }

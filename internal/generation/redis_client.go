@@ -104,7 +104,7 @@ func (s *Service) publishToRedis(resp *llm.GenerationResponse, userID, projectID
 
 	// Publish to user-specific channel
 	if userID != "" {
-		channel := fmt.Sprintf("generation:user:%s", userID)
+		channel := fmt.Sprintf("user:%s:generations", userID)
 		if err := s.redisClient.Publish(ctx, channel, jsonMessage).Err(); err != nil {
 			log.Error().Err(err).Str("channel", channel).Msg("Failed to publish to user channel")
 		}
@@ -112,14 +112,14 @@ func (s *Service) publishToRedis(resp *llm.GenerationResponse, userID, projectID
 
 	// Publish to project-specific channel
 	if projectID != "" {
-		channel := fmt.Sprintf("generation:project:%s", projectID)
+		channel := fmt.Sprintf("project:%s:generations", projectID)
 		if err := s.redisClient.Publish(ctx, channel, jsonMessage).Err(); err != nil {
 			log.Error().Err(err).Str("channel", channel).Msg("Failed to publish to project channel")
 		}
 	}
 
 	// Publish to global channel
-	if err := s.redisClient.Publish(ctx, "generation:global", jsonMessage).Err(); err != nil {
+	if err := s.redisClient.Publish(ctx, "global:generations", jsonMessage).Err(); err != nil {
 		log.Error().Err(err).Msg("Failed to publish to global channel")
 	}
 }
@@ -127,13 +127,13 @@ func (s *Service) publishToRedis(resp *llm.GenerationResponse, userID, projectID
 // SubscribeToUserChannel subscribes to user-specific generation events
 func (s *Service) SubscribeToUserChannel(ctx context.Context, userID string) (*redis.PubSub, error) {
 	if s.redisClient == nil {
-		return nil, fmt.Errorf("redis not available")
+		return nil, fmt.Errorf("redis client is not initialized")
 	}
 	if userID == "" {
 		return nil, fmt.Errorf("user ID is required")
 	}
 
-	channel := fmt.Sprintf("generation:user:%s", userID)
+	channel := fmt.Sprintf("user:%s:generations", userID)
 	pubsub := s.redisClient.Subscribe(ctx, channel)
 
 	return pubsub, nil
@@ -142,13 +142,13 @@ func (s *Service) SubscribeToUserChannel(ctx context.Context, userID string) (*r
 // SubscribeToProjectChannel subscribes to project-specific generation events
 func (s *Service) SubscribeToProjectChannel(ctx context.Context, projectID string) (*redis.PubSub, error) {
 	if s.redisClient == nil {
-		return nil, fmt.Errorf("redis not available")
+		return nil, fmt.Errorf("redis client is not initialized")
 	}
 	if projectID == "" {
 		return nil, fmt.Errorf("project ID is required")
 	}
 
-	channel := fmt.Sprintf("generation:project:%s", projectID)
+	channel := fmt.Sprintf("project:%s:generations", projectID)
 	pubsub := s.redisClient.Subscribe(ctx, channel)
 
 	return pubsub, nil
@@ -157,8 +157,8 @@ func (s *Service) SubscribeToProjectChannel(ctx context.Context, projectID strin
 // SubscribeToGlobalChannel subscribes to global generation events
 func (s *Service) SubscribeToGlobalChannel(ctx context.Context) (*redis.PubSub, error) {
 	if s.redisClient == nil {
-		return nil, fmt.Errorf("redis not available")
+		return nil, fmt.Errorf("redis client is not initialized")
 	}
-	pubsub := s.redisClient.Subscribe(ctx, "generation:global")
+	pubsub := s.redisClient.Subscribe(ctx, "global:generations")
 	return pubsub, nil
 }

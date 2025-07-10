@@ -7,33 +7,36 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EliasRanz/ai-code-gen/internal/auth"
+	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
+	"github.com/EliasRanz/ai-code-gen/internal/llm"
+	"github.com/EliasRanz/ai-code-gen/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-
-	"github.com/EliasRanz/ai-code-gen/internal/llm"
-	"github.com/EliasRanz/ai-code-gen/internal/user"
 )
+
+func RegisterRoutes(router *gin.Engine, service *Service, tokenManager *auth.TokenManager, userRepo user.Repository) {
+	// Generation group with authentication middleware
+	generationGroup := router.Group("/api/v1/generate")
+	generationGroup.Use(middleware.AuthMiddleware(tokenManager, userRepo))
+	{
+		generationGroup.POST("/stream", service.StreamGenerationHandler)
+		generationGroup.POST("/request-response", service.RequestResponseHandler)
+	}
+
+	// Health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+}
 
 // StreamGenerationHandler handles streaming AI generation requests
 func (s *Service) StreamGenerationHandler(c *gin.Context) {
 	// Check authentication
-	userContext, exists := c.Get("user")
-	if !exists {
+	userID, _, _, authenticated := middleware.GetUserContext(c)
+	if !authenticated {
 		log.Warn().Msg("Unauthorized: No user context found")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-		return
-	}
-
-	userObj, ok := userContext.(*user.User)
-	if !ok {
-		log.Warn().Msg("Unauthorized: Invalid user context")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user context"})
-		return
-	}
-
-	if !userObj.IsActive {
-		log.Warn().Str("user_id", userObj.ID).Msg("Forbidden: User is inactive")
-		c.JSON(http.StatusForbidden, gin.H{"error": "User account is inactive"})
 		return
 	}
 
@@ -53,11 +56,18 @@ func (s *Service) StreamGenerationHandler(c *gin.Context) {
 		return
 	}
 
+	// Set user ID from context
+	req.UserID = string(userID)
+
+	// Create a stream for the user
+	streamID := fmt.Sprintf("user-%s-stream-%d", string(userID), time.Now().UnixNano())
+
 	log.Info().
 		Str("model", req.Model).
 		Str("user_id", req.UserID).
 		Str("project_id", req.ProjectID).
 		Int("prompt_length", len(req.Prompt)).
+		Str("stream_id", streamID).
 		Msg("Streaming generation request")
 
 	// Create generation request
@@ -87,26 +97,13 @@ func (s *Service) StreamGenerationHandler(c *gin.Context) {
 	s.streamResponse(c, respChan, req.UserID, req.ProjectID)
 }
 
-// NonStreamGenerationHandler handles non-streaming AI generation requests
-func (s *Service) NonStreamGenerationHandler(c *gin.Context) {
+// RequestResponseHandler handles non-streaming AI generation requests
+func (s *Service) RequestResponseHandler(c *gin.Context) {
 	// Check authentication
-	userContext, exists := c.Get("user")
-	if !exists {
+	userID, _, _, authenticated := middleware.GetUserContext(c)
+	if !authenticated {
 		log.Warn().Msg("Unauthorized: No user context found")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-		return
-	}
-
-	userObj, ok := userContext.(*user.User)
-	if !ok {
-		log.Warn().Msg("Unauthorized: Invalid user context")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user context"})
-		return
-	}
-
-	if !userObj.IsActive {
-		log.Warn().Str("user_id", userObj.ID).Msg("Forbidden: User is inactive")
-		c.JSON(http.StatusForbidden, gin.H{"error": "User account is inactive"})
 		return
 	}
 
@@ -126,24 +123,22 @@ func (s *Service) NonStreamGenerationHandler(c *gin.Context) {
 		return
 	}
 
-	log.Info().
-		Str("model", req.Model).
-		Str("user_id", req.UserID).
-		Str("project_id", req.ProjectID).
-		Int("prompt_length", len(req.Prompt)).
-		Msg("Non-streaming generation request")
+	// Set user ID from context
+	req.UserID = string(userID)
 
-	// Create generation request
-	genReq := &llm.GenerationRequest{
+	// Create a request to the LLM
+	llmReq := &llm.GenerationRequest{
 		Model:       req.Model,
 		Prompt:      req.Prompt,
 		MaxTokens:   req.MaxTokens,
 		Temperature: req.Temperature,
 		Metadata:    req.Metadata,
+		UserID:      req.UserID,
+		ProjectID:   req.ProjectID,
 	}
 
 	// Generate response
-	resp, err := s.llmClient.Generate(c.Request.Context(), genReq)
+	resp, err := s.llmClient.Generate(c.Request.Context(), llmReq)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate response")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Generation failed"})
@@ -268,4 +263,27 @@ func (s *Service) writeSSEEvent(c *gin.Context, event string, data interface{}, 
 func (s *Service) writeSSEError(c *gin.Context, errorCode, message string) {
 	fmt.Fprintf(c.Writer, "event: error\n")
 	fmt.Fprintf(c.Writer, "data: {\"error_code\":\"%s\",\"message\":\"%s\"}\n\n", errorCode, message)
+}
+
+// HealthCheckHandler handles health checks for the generation service
+func (s *Service) HealthCheckHandler(c *gin.Context) {
+	// Check LLM client health
+	llmHealthy := s.llmClient.Health(c.Request.Context()) == nil
+
+	// Check Redis client health
+	redisHealthy := s.redisClient.Ping(c.Request.Context()) == nil
+
+	if llmHealthy && redisHealthy {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+			"llm":    "healthy",
+			"redis":  "healthy",
+		})
+	} else {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "error",
+			"llm":    map[string]interface{}{"healthy": llmHealthy},
+			"redis":  map[string]interface{}{"healthy": redisHealthy},
+		})
+	}
 }

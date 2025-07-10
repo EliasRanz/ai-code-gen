@@ -34,6 +34,16 @@ func NewAuthHandler(
 	}
 }
 
+// RegisterRoutes registers all authentication routes
+func (h *AuthHandler) RegisterRoutes(router *gin.RouterGroup) {
+	authGroup := router.Group("/auth")
+	{
+		authGroup.POST("/login", h.Login)
+		authGroup.POST("/logout", h.Logout)
+		authGroup.POST("/refresh", h.RefreshToken)
+	}
+}
+
 // Login handles POST /auth/login
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req auth.LoginRequest

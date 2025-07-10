@@ -41,6 +41,27 @@ func NewUserHandler(
 	}
 }
 
+// RegisterRoutes registers all user-related routes
+func (h *UserHandler) RegisterRoutes(router *gin.Engine) *gin.Engine {
+	// Register all user and project routes using the handler
+	apiGroup := router.Group("/api")
+	h.RegisterUserRoutes(apiGroup)
+
+	return router
+}
+
+// RegisterUserRoutes registers all user-related routes
+func (h *UserHandler) RegisterUserRoutes(rg *gin.RouterGroup) {
+	userGroup := rg.Group("/users")
+	{
+		userGroup.POST("", h.CreateUser)
+		userGroup.GET("/:id", h.GetUser)
+		userGroup.PUT("/:id", h.UpdateUser)
+		userGroup.DELETE("/:id", h.DeleteUser)
+		userGroup.GET("", h.ListUsers)
+	}
+}
+
 // CreateUser handles POST /users
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req user.CreateUserRequest
