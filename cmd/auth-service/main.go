@@ -6,10 +6,10 @@ import (
 
 	appAuth "github.com/EliasRanz/ai-code-gen/internal/auth"
 	"github.com/EliasRanz/ai-code-gen/internal/config"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/database"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
 	"github.com/EliasRanz/ai-code-gen/internal/interfaces/http"
 	"github.com/EliasRanz/ai-code-gen/internal/service"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities/database"
 )
 
 func main() {
@@ -33,12 +33,12 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
 
-	userRepo, err := database.NewAuthUserRepository(db)
+	userRepo, err := appAuth.NewAuthUserRepository(db)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create user repository")
 	}
 
-	sessionRepo, err := database.NewPostgreSQLSessionRepository(db)
+	sessionRepo, err := appAuth.NewPostgreSQLSessionRepository(db)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create session repository")
 	}

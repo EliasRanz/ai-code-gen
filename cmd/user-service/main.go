@@ -10,16 +10,15 @@ import (
 	"google.golang.org/grpc"
 
 	pb "github.com/EliasRanz/ai-code-gen/api/proto/user"
-	appUser "github.com/EliasRanz/ai-code-gen/internal/application/user"
 	"github.com/EliasRanz/ai-code-gen/internal/config"
 	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/database"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/validation"
 	grpc_iface "github.com/EliasRanz/ai-code-gen/internal/interfaces/grpc"
 	http_iface "github.com/EliasRanz/ai-code-gen/internal/interfaces/http"
 	"github.com/EliasRanz/ai-code-gen/internal/service"
+	"github.com/EliasRanz/ai-code-gen/internal/user"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities/database"
 )
 
 // Dummy notification service
@@ -61,7 +60,7 @@ func main() {
 	}
 
 	// Initialize repositories
-	userRepo, err := database.NewPostgreSQLUserRepository(db)
+	userRepo, err := user.NewPostgreSQLUserRepository(db)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create user repository")
 	}
@@ -70,12 +69,12 @@ func main() {
 	validator := validation.NewValidator()
 	notifier := &dummyNotifier{}
 
-	// Initialize user service (use cases)
-	createUserUC := appUser.NewCreateUserUseCase(userRepo, validator, notifier)
-	getUserUC := appUser.NewGetUserUseCase(userRepo)
-	updateUserUC := appUser.NewUpdateUserUseCase(userRepo, validator, notifier)
-	deleteUserUC := appUser.NewDeleteUserUseCase(userRepo, notifier)
-	listUsersUC := appUser.NewListUsersUseCase(userRepo)
+	// Initialize user service (business logic services)
+	createUserUC := user.NewUserCreator(userRepo, validator, notifier)
+	getUserUC := user.NewUserRetriever(userRepo)
+	updateUserUC := user.NewUserUpdater(userRepo, validator, notifier)
+	deleteUserUC := user.NewUserDeleter(userRepo, notifier)
+	listUsersUC := user.NewUserLister(userRepo)
 
 	// Initialize gRPC server
 	userGRPCServer := grpc_iface.NewUserServer(

@@ -43,7 +43,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bytedance/sonic v1.13.2 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
-	github.com/c2h5oh/datasize v0.0.0-20231215233829-aa82cc1e6500 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
@@ -114,7 +113,6 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
-	github.com/tsenart/go-tsz v0.0.0-20180814235614-0bd30b3df1c3 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/valyala/fastrand v1.1.0 // indirect
