@@ -1,12 +1,4 @@
 # Binaries and executables
-user-service
-ai-generation-service
-ai-service
-api-gateway
-auth-service
-server
-performance_runner
-sla_demo
 *.exe
 *.dll
 *.so
