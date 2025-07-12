@@ -5,143 +5,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
+	"github.com/EliasRanz/ai-code-gen/internal/user"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
-// AuthMiddleware validates JWT tokens with full user context (for services with database access)
-func AuthMiddleware(tokenValidator TokenValidator, userRepo user.Repository) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Get the Authorization header
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
-		}
-
-		// Check for Bearer token
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
-			c.Abort()
-			return
-		}
-
-		// Extract token
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token not provided or invalid"})
-			c.Abort()
-			return
-		}
-
-		// Validate JWT token
-		userID, err := tokenValidator.ValidateAccessToken(token)
-		if err != nil {
-			log.Debug().
-				Str("token_prefix", token[:min(10, len(token))]).
-				Err(err).
-				Msg("JWT token validation failed")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-			c.Abort()
-			return
-		}
-
-		// Get user details from repository
-		userData, err := userRepo.GetByID(c.Request.Context(), common.UserID(userID))
-		if err != nil {
-			log.Debug().
-				Str("user_id", string(userID)).
-				Err(err).
-				Msg("Failed to get user details")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-			c.Abort()
-			return
-		}
-
-		// Check if user is active
-		if !userData.Active {
-			log.Debug().
-				Str("user_id", string(userID)).
-				Msg("Inactive user attempted authentication")
-			c.JSON(http.StatusForbidden, gin.H{"error": "User account is inactive"})
-			c.Abort()
-			return
-		}
-
-		// Determine user role (take first role if multiple, default to "user")
-		userRole := "user"
-		if len(userData.Roles) > 0 {
-			userRole = userData.Roles[0]
-		}
-
-		// Set user context from validated JWT claims
-		c.Set("user_id", string(userID))
-		c.Set("user_email", userData.Email)
-		c.Set("user_role", userRole)
-		c.Set("authenticated", true)
-
-		log.Debug().
-			Str("user_id", string(userID)).
-			Str("user_email", userData.Email).
-			Str("user_role", userRole).
-			Msg("User authenticated successfully")
-
-		c.Next()
-	}
-}
-
-// LightweightAuthMiddleware validates JWT tokens without database access (for API gateways)
-func LightweightAuthMiddleware(tokenValidator TokenValidator) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Get the Authorization header
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
-		}
-
-		// Check for Bearer token
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
-			c.Abort()
-			return
-		}
-
-		// Extract token
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token not provided or invalid"})
-			c.Abort()
-			return
-		}
-
-		// Validate JWT token
-		userID, err := tokenValidator.ValidateAccessToken(token)
-		if err != nil {
-			log.Debug().
-				Str("token_prefix", token[:min(10, len(token))]).
-				Err(err).
-				Msg("JWT token validation failed")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-			c.Abort()
-			return
-		}
-
-		// Set minimal user context from validated JWT claims
-		c.Set("user_id", string(userID))
-		c.Set("authenticated", true)
-
-		log.Debug().
-			Str("user_id", string(userID)).
-			Msg("User authenticated successfully (lightweight)")
-
-		c.Next()
-	}
-}
+// Legacy middleware functions removed - use AuthServiceProxy from internal/middleware package instead
+// These functions have been replaced by the centralized auth service architecture
 
 // OptionalAuth middleware that doesn't fail if no auth is provided
 func OptionalAuth(tokenValidator TokenValidator, userRepo user.Repository) gin.HandlerFunc {
@@ -160,7 +31,7 @@ func OptionalAuth(tokenValidator TokenValidator, userRepo user.Repository) gin.H
 				userID, err := tokenValidator.ValidateAccessToken(token)
 				if err == nil {
 					// Get user details from repository
-					userData, err := userRepo.GetByID(c.Request.Context(), common.UserID(userID))
+					userData, err := userRepo.GetByID(c.Request.Context(), utilities.UserID(userID))
 					if err == nil && userData.Active {
 						// Determine user role (take first role if multiple, default to "user")
 						userRole := "user"
@@ -292,10 +163,10 @@ func RequireAuthentication() gin.HandlerFunc {
 }
 
 // GetUserContextFromMiddleware extracts user information from middleware context
-func GetUserContextFromMiddleware(c *gin.Context) (userID common.UserID, email, role string, authenticated bool) {
+func GetUserContextFromMiddleware(c *gin.Context) (userID utilities.UserID, email, role string, authenticated bool) {
 	if auth, exists := c.Get("authenticated"); exists && auth.(bool) {
 		if uid, exists := c.Get("user_id"); exists {
-			userID = common.UserID(uid.(string))
+			userID = utilities.UserID(uid.(string))
 		}
 		if em, exists := c.Get("user_email"); exists {
 			email = em.(string)
@@ -318,89 +189,6 @@ func IsAdmin(c *gin.Context) bool {
 func IsAuthenticated(c *gin.Context) bool {
 	authenticated, exists := c.Get("authenticated")
 	return exists && authenticated.(bool)
-}
-
-// LightweightAuthMiddlewareWithClaims validates JWT tokens and extracts claims (for services needing claim data)
-func LightweightAuthMiddlewareWithClaims(tokenValidator TokenValidator, userRepo user.Repository, roles ...string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Get the Authorization header
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
-		}
-
-		// Check for Bearer token
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
-			c.Abort()
-			return
-		}
-
-		// Extract token
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token not provided or invalid"})
-			c.Abort()
-			return
-		}
-
-		// Validate token
-		userID, err := tokenValidator.ValidateAccessToken(token)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-			c.Abort()
-			return
-		}
-
-		// Get user details from repository
-		userData, err := userRepo.GetByID(c.Request.Context(), common.UserID(userID))
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-			c.Abort()
-			return
-		}
-
-		// Check if user is active
-		if !userData.Active {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User account is inactive"})
-			c.Abort()
-			return
-		}
-
-		// Check user role
-		userRole := "user"
-		if len(userData.Roles) > 0 {
-			userRole = userData.Roles[0]
-		}
-
-		roleMatch := false
-		if len(roles) == 0 {
-			roleMatch = true // No specific roles required
-		} else {
-			for _, r := range roles {
-				if userRole == r {
-					roleMatch = true
-					break
-				}
-			}
-		}
-
-		if !roleMatch {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
-			c.Abort()
-			return
-		}
-
-		// Set user context
-		c.Set("user_id", string(userID))
-		c.Set("user_email", userData.Email)
-		c.Set("user_role", userRole)
-		c.Set("authenticated", true)
-
-		c.Next()
-	}
 }
 
 func min(a, b int) int {
