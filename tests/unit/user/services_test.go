@@ -5,15 +5,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
 	"github.com/EliasRanz/ai-code-gen/internal/user"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
 // TestUserEntity tests the User entity methods
 func TestUserEntity(t *testing.T) {
 	t.Run("IsAdmin should return true for admin role", func(t *testing.T) {
 		u := user.User{
-			ID:   common.UserID("test-id"),
+			ID:   utilities.UserID("test-id"),
 			Role: user.RoleAdmin,
 		}
 
@@ -22,7 +22,7 @@ func TestUserEntity(t *testing.T) {
 
 	t.Run("IsAdmin should return false for user role", func(t *testing.T) {
 		u := user.User{
-			ID:   common.UserID("test-id"),
+			ID:   utilities.UserID("test-id"),
 			Role: user.RoleUser,
 		}
 
@@ -30,7 +30,7 @@ func TestUserEntity(t *testing.T) {
 	})
 
 	t.Run("CanAccessProject should return true for own project", func(t *testing.T) {
-		userID := common.UserID("test-id")
+		userID := utilities.UserID("test-id")
 		u := user.User{
 			ID:   userID,
 			Role: user.RoleUser,

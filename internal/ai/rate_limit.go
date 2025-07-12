@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
 // RateLimiter manages rate limiting for AI requests
@@ -61,6 +62,12 @@ func (rl *RateLimiter) RateLimitMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// Allow checks if a request is allowed for the given user ID
+func (rl *RateLimiter) Allow(userID utilities.UserID) bool {
+	limiter := rl.GetLimiter(string(userID))
+	return limiter.Allow()
 }
 
 // QuotaManager manages usage quotas

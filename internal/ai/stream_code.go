@@ -3,6 +3,7 @@ package ai
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
@@ -105,14 +106,17 @@ func (s *StreamCodeService) Execute(ctx context.Context, req StreamCodeRequest) 
 		}
 
 		// Start streaming generation
-		streamChan, err := s.llmService.GenerateStream(ctx, domainReq)
-		if err != nil {
-			responseChan <- StreamCodeResponse{
-				Type:  "error",
-				Error: "Failed to start generation: " + err.Error(),
+		streamChan := make(chan StreamChunk)
+		go func() {
+			defer close(streamChan)
+			err := s.llmService.GenerateStream(ctx, domainReq, streamChan)
+			if err != nil {
+				streamChan <- StreamChunk{
+					Error: fmt.Errorf("failed to start generation: %w", err),
+				}
+				return
 			}
-			return
-		}
+		}()
 
 		totalTokens := 0
 		var fullCode string

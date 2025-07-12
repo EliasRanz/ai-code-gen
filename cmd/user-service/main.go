@@ -11,13 +11,13 @@ import (
 
 	pb "github.com/EliasRanz/ai-code-gen/api/proto/user"
 	"github.com/EliasRanz/ai-code-gen/internal/config"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/validation"
 	grpc_iface "github.com/EliasRanz/ai-code-gen/internal/interfaces/grpc"
 	http_iface "github.com/EliasRanz/ai-code-gen/internal/interfaces/http"
 	"github.com/EliasRanz/ai-code-gen/internal/service"
 	"github.com/EliasRanz/ai-code-gen/internal/user"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 	"github.com/EliasRanz/ai-code-gen/internal/utilities/database"
 )
 
@@ -26,7 +26,7 @@ type dummyNotifier struct{}
 
 func (n *dummyNotifier) NotifyUserCreated(ctx context.Context, user *user.User) error { return nil }
 func (n *dummyNotifier) NotifyUserUpdated(ctx context.Context, user *user.User) error { return nil }
-func (n *dummyNotifier) NotifyUserDeleted(ctx context.Context, userID common.UserID) error {
+func (n *dummyNotifier) NotifyUserDeleted(ctx context.Context, userID utilities.UserID) error {
 	return nil
 }
 

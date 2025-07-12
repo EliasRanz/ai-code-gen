@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/EliasRanz/ai-code-gen/internal/domain/ai"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/internal/ai"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/llm"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
 func TestOpenAIService_Validate(t *testing.T) {
@@ -76,7 +76,7 @@ func TestOpenAIService_StreamingInterface(t *testing.T) {
 	req := ai.GenerationRequest{
 		Prompt:   "Generate a hello world function in Go",
 		Language: "go",
-		UserID:   common.UserID("test-user"),
+		UserID:   utilities.UserID("test-user"),
 	}
 
 	t.Run("Legacy Stream method signature", func(t *testing.T) {
@@ -112,7 +112,7 @@ func TestOpenAIService_GenerationRequest(t *testing.T) {
 	req := ai.GenerationRequest{
 		Prompt:   "Generate a hello world function",
 		Language: "go",
-		UserID:   common.UserID("test-user"),
+		UserID:   utilities.UserID("test-user"),
 	}
 
 	// Test non-streaming generation (will fail without valid API key, but tests interface)

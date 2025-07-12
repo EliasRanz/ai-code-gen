@@ -3,14 +3,16 @@ package ai
 
 import (
 	"context"
+
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
 // Repository defines AI domain data access
 type Repository interface {
 	SaveGeneration(ctx context.Context, generation AIGenerationHistory) error
-	GetHistory(ctx context.Context, userID UserID, limit int) ([]AIGenerationHistory, error)
-	GetQuotaUsage(ctx context.Context, userID UserID) (QuotaStatus, error)
-	UpdateQuotaUsage(ctx context.Context, userID UserID, tokens int) error
+	GetHistory(ctx context.Context, userID utilities.UserID, limit int) ([]AIGenerationHistory, error)
+	GetQuotaUsage(ctx context.Context, userID utilities.UserID) (QuotaStatus, error)
+	UpdateQuotaUsage(ctx context.Context, userID utilities.UserID, tokens int) error
 }
 
 // LLMService defines the interface for LLM interactions
@@ -23,5 +25,5 @@ type LLMService interface {
 
 // EventPublisher defines event publishing interface
 type EventPublisher interface {
-	PublishGenerationEvent(ctx context.Context, userID UserID, tokens int) error
+	PublishGenerationEvent(ctx context.Context, userID utilities.UserID, tokens int) error
 }
