@@ -10,15 +10,14 @@ import (
 	"github.com/EliasRanz/ai-code-gen/internal/auth"
 	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
 	"github.com/EliasRanz/ai-code-gen/internal/llm"
-	"github.com/EliasRanz/ai-code-gen/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
-func RegisterRoutes(router *gin.Engine, service *Service, tokenManager *auth.TokenManager, userRepo user.Repository) {
+func RegisterRoutes(router *gin.Engine, service *Service, tokenValidator auth.TokenValidator, userRepo user.Repository) {
 	// Generation group with authentication middleware
 	generationGroup := router.Group("/api/v1/generate")
-	generationGroup.Use(middleware.AuthMiddleware(tokenManager, userRepo))
+	generationGroup.Use(auth.AuthMiddleware(tokenValidator, userRepo))
 	{
 		generationGroup.POST("/stream", service.StreamGenerationHandler)
 		generationGroup.POST("/request-response", service.RequestResponseHandler)
@@ -33,7 +32,7 @@ func RegisterRoutes(router *gin.Engine, service *Service, tokenManager *auth.Tok
 // StreamGenerationHandler handles streaming AI generation requests
 func (s *Service) StreamGenerationHandler(c *gin.Context) {
 	// Check authentication
-	userID, _, _, authenticated := middleware.GetUserContext(c)
+	userID, _, _, authenticated := auth.GetUserContextFromMiddleware(c)
 	if !authenticated {
 		log.Warn().Msg("Unauthorized: No user context found")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
@@ -100,7 +99,7 @@ func (s *Service) StreamGenerationHandler(c *gin.Context) {
 // RequestResponseHandler handles non-streaming AI generation requests
 func (s *Service) RequestResponseHandler(c *gin.Context) {
 	// Check authentication
-	userID, _, _, authenticated := middleware.GetUserContext(c)
+	userID, _, _, authenticated := auth.GetUserContextFromMiddleware(c)
 	if !authenticated {
 		log.Warn().Msg("Unauthorized: No user context found")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})

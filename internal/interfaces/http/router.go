@@ -9,7 +9,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
-	"github.com/EliasRanz/ai-code-gen/internal/domain/auth"
+	"github.com/EliasRanz/ai-code-gen/internal/auth"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
 )
 
