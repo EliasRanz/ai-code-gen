@@ -8,11 +8,11 @@ import (
 )
 
 func TestTokenRefresh(t *testing.T) {
-	tm := auth.NewTokenManager("testsecret", "testissuer")
-	assert.NotNil(t, tm)
+	jwtProvider := auth.NewJWTTokenProvider("testsecret", "testissuer")
+	assert.NotNil(t, jwtProvider)
 
 	// Test that we can generate a refresh token
-	refreshToken, err := tm.GenerateRefreshToken("user123")
+	refreshToken, err := jwtProvider.GenerateRefreshToken(auth.UserID("user123"))
 	assert.NoError(t, err)
 	assert.NotEmpty(t, refreshToken)
 }

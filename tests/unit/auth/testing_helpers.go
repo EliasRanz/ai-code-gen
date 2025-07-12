@@ -3,63 +3,133 @@ package authtest
 import (
 	"context"
 
-	"github.com/EliasRanz/ai-code-gen/internal/application/auth"
-	auth_infra "github.com/EliasRanz/ai-code-gen/internal/auth"
-	domain_auth "github.com/EliasRanz/ai-code-gen/internal/domain/auth"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
-	http_iface "github.com/EliasRanz/ai-code-gen/internal/interfaces/http"
+	"github.com/EliasRanz/ai-code-gen/internal/auth"
 	"github.com/stretchr/testify/mock"
 )
+
+// MockTokenProvider for testing
+type MockTokenProvider struct {
+	mock.Mock
+}
+
+func (m *MockTokenProvider) GenerateAccessToken(userID auth.UserID) (string, error) {
+	args := m.Called(userID)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockTokenProvider) GenerateRefreshToken(userID auth.UserID) (string, error) {
+	args := m.Called(userID)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockTokenProvider) ValidateAccessToken(token string) (auth.UserID, error) {
+	args := m.Called(token)
+	return args.Get(0).(auth.UserID), args.Error(1)
+}
+
+func (m *MockTokenProvider) ValidateRefreshToken(token string) (auth.UserID, error) {
+	args := m.Called(token)
+	return args.Get(0).(auth.UserID), args.Error(1)
+}
 
 // MockUserRepository for testing
 type MockUserRepository struct {
 	mock.Mock
 }
 
-func (m *MockUserRepository) GetByID(ctx context.Context, id common.UserID) (user.User, error) {
+func (m *MockUserRepository) GetByID(ctx context.Context, id auth.UserID) (auth.User, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
-		return user.User{}, args.Error(1)
+		return auth.User{}, args.Error(1)
 	}
-	return args.Get(0).(user.User), args.Error(1)
+	return args.Get(0).(auth.User), args.Error(1)
 }
 
-func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (user.User, error) {
+func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (auth.User, error) {
 	args := m.Called(ctx, email)
 	if args.Get(0) == nil {
-		return user.User{}, args.Error(1)
+		return auth.User{}, args.Error(1)
 	}
-	return args.Get(0).(user.User), args.Error(1)
+	return args.Get(0).(auth.User), args.Error(1)
 }
 
-func (m *MockUserRepository) Create(ctx context.Context, u user.User) error {
+func (m *MockUserRepository) Create(ctx context.Context, u auth.User) error {
 	args := m.Called(ctx, u)
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) Update(ctx context.Context, u user.User) error {
+func (m *MockUserRepository) Update(ctx context.Context, u auth.User) error {
 	args := m.Called(ctx, u)
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) Delete(ctx context.Context, id common.UserID) error {
+func (m *MockUserRepository) Delete(ctx context.Context, id auth.UserID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) List(ctx context.Context, params common.PaginationParams, search string) ([]user.User, error) {
+func (m *MockUserRepository) List(ctx context.Context, params auth.PaginationParams, search string) ([]auth.User, error) {
 	args := m.Called(ctx, params, search)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]user.User), args.Error(1)
+	return args.Get(0).([]auth.User), args.Error(1)
 }
 
 func (m *MockUserRepository) Count(ctx context.Context, search string) (int, error) {
 	args := m.Called(ctx, search)
-	return args.Int(0), args.Error(1)
+	return args.Get(0).(int), args.Error(1)
+}
+
+// MockSessionRepository for testing
+type MockSessionRepository struct {
+	mock.Mock
+}
+
+func (m *MockSessionRepository) Create(ctx context.Context, session auth.Session) error {
+	args := m.Called(ctx, session)
+	return args.Error(0)
+}
+
+func (m *MockSessionRepository) GetByID(ctx context.Context, id auth.SessionID) (auth.Session, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return auth.Session{}, args.Error(1)
+	}
+	return args.Get(0).(auth.Session), args.Error(1)
+}
+
+func (m *MockSessionRepository) GetByRefreshToken(ctx context.Context, refreshToken string) (auth.Session, error) {
+	args := m.Called(ctx, refreshToken)
+	if args.Get(0) == nil {
+		return auth.Session{}, args.Error(1)
+	}
+	return args.Get(0).(auth.Session), args.Error(1)
+}
+
+func (m *MockSessionRepository) Update(ctx context.Context, session auth.Session) error {
+	args := m.Called(ctx, session)
+	return args.Error(0)
+}
+
+func (m *MockSessionRepository) Delete(ctx context.Context, id auth.SessionID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockSessionRepository) DeleteByUserID(ctx context.Context, userID auth.UserID) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+func (m *MockSessionRepository) GetByAccessToken(ctx context.Context, accessToken string) (auth.Session, error) {
+	args := m.Called(ctx, accessToken)
+	if args.Get(0) == nil {
+		return auth.Session{}, args.Error(1)
+	}
+	return args.Get(0).(auth.Session), args.Error(1)
+}
+
+func (m *MockSessionRepository) CleanExpired(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
 }
 
 // MockPasswordHasher for testing
@@ -75,31 +145,4 @@ func (m *MockPasswordHasher) Hash(password string) (string, error) {
 func (m *MockPasswordHasher) Verify(password, hash string) bool {
 	args := m.Called(password, hash)
 	return args.Bool(0)
-}
-
-// Helper functions
-func CreateTestTokenManager() *auth_infra.TokenManager {
-	return auth_infra.NewTokenManager("test-secret", "test-issuer")
-}
-
-func CreateTestLoginUseCase(userRepo user.Repository, sessionRepo domain_auth.SessionRepository) *auth.LoginUseCase {
-	tokenManager := CreateTestTokenManager()
-	return auth.NewLoginUseCase(userRepo, sessionRepo, &MockPasswordHasher{}, tokenManager)
-}
-
-func CreateTestLogoutUseCase(sessionRepo domain_auth.SessionRepository) *auth.LogoutUseCase {
-	return auth.NewLogoutUseCase(sessionRepo)
-}
-
-func CreateTestRefreshTokenUseCase(userRepo user.Repository, sessionRepo domain_auth.SessionRepository) *auth.RefreshTokenUseCase {
-	tokenManager := CreateTestTokenManager()
-	return auth.NewRefreshTokenUseCase(sessionRepo, tokenManager, userRepo)
-}
-
-func CreateTestHandler(userRepo user.Repository, sessionRepo domain_auth.SessionRepository) *http_iface.AuthHandler {
-	loginUC := CreateTestLoginUseCase(userRepo, sessionRepo)
-	logoutUC := CreateTestLogoutUseCase(sessionRepo)
-	refreshTokenUC := CreateTestRefreshTokenUseCase(userRepo, sessionRepo)
-	logger := observability.NewLogger("debug", "console")
-	return http_iface.NewAuthHandler(loginUC, logoutUC, refreshTokenUC, logger)
 }
