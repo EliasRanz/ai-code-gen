@@ -196,3 +196,11 @@ temp/
 
 # Generated protobuf files are kept in version control for this project
 # api/proto/**/*.pb.go - commented out to keep them tracked
+
+# Copilot specific files
+**_*SUMMARY*.md
+**_*COMPLETE*.md
+**_*PLAN*.md
+**_FIXED*.md
+
+**.test
