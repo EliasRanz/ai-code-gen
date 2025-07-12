@@ -1,7 +1,7 @@
 # Architecture Decision Record: Centralized Authentication Server
 
 **Status**: Proposed  
-**Date**: 2025-01-11  
+**Date**: 2025-07-11  
 **Context**: Multiple services currently have their own auth implementations
 
 ## Context
