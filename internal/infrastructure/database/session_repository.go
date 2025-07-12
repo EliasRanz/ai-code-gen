@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/EliasRanz/ai-code-gen/internal/domain/auth"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/internal/auth"
 	"gorm.io/gorm"
 )
 
@@ -56,7 +55,7 @@ func (r *PostgreSQLSessionRepository) Update(ctx context.Context, session auth.S
 }
 
 // Delete deletes a session by its ID
-func (r *PostgreSQLSessionRepository) Delete(ctx context.Context, sessionID common.SessionID) error {
+func (r *PostgreSQLSessionRepository) Delete(ctx context.Context, sessionID auth.SessionID) error {
 	result := r.db.WithContext(ctx).Delete(&auth.Session{}, "id = ?", sessionID)
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete session: %w", result.Error)
@@ -68,7 +67,7 @@ func (r *PostgreSQLSessionRepository) Delete(ctx context.Context, sessionID comm
 }
 
 // DeleteByUserID deletes all sessions for a given user ID
-func (r *PostgreSQLSessionRepository) DeleteByUserID(ctx context.Context, userID common.UserID) error {
+func (r *PostgreSQLSessionRepository) DeleteByUserID(ctx context.Context, userID auth.UserID) error {
 	result := r.db.WithContext(ctx).Delete(&auth.Session{}, "user_id = ?", userID)
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete sessions by user id: %w", result.Error)

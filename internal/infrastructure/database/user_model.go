@@ -3,8 +3,10 @@ package database
 import (
 	"encoding/json"
 	"time"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
+
+	"github.com/EliasRanz/ai-code-gen/internal/auth"
 	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
 )
 
 // UserModel represents the database model for users
@@ -28,14 +30,52 @@ func (UserModel) TableName() string {
 	return "users"
 }
 
-// ToUser converts UserModel to domain user.User
-func (u *UserModel) ToUser() user.User {
+// ToUser converts UserModel to domain auth.User
+func (u *UserModel) ToUser() auth.User {
 	var roles []string
 	if u.Roles != "" && u.Roles != "[]" {
 		_ = json.Unmarshal([]byte(u.Roles), &roles)
 	}
-	
-	domainUser := user.User{
+
+	domainUser := auth.User{
+		ID:       auth.UserID(u.ID),
+		Email:    u.Email,
+		Username: u.Username,
+		Name:     u.Name,
+		Password: u.PasswordHash, // Map PasswordHash to Password
+		Roles:    roles,
+		Active:   u.Active,
+	}
+
+	return domainUser
+}
+
+// FromUser converts domain auth.User to UserModel
+func (u *UserModel) FromUser(domainUser auth.User) error {
+	rolesJSON, err := json.Marshal(domainUser.Roles)
+	if err != nil {
+		return err
+	}
+
+	u.ID = string(domainUser.ID)
+	u.Email = domainUser.Email
+	u.Username = domainUser.Username
+	u.Name = domainUser.Name
+	u.PasswordHash = domainUser.Password // Map Password to PasswordHash
+	u.Roles = string(rolesJSON)
+	u.Active = domainUser.Active
+
+	return nil
+}
+
+// ToDomainUser converts UserModel to domain user.User
+func (u *UserModel) ToDomainUser() user.User {
+	var roles []string
+	if u.Roles != "" {
+		json.Unmarshal([]byte(u.Roles), &roles)
+	}
+
+	return user.User{
 		ID:           common.UserID(u.ID),
 		Email:        u.Email,
 		Username:     u.Username,
@@ -43,25 +83,22 @@ func (u *UserModel) ToUser() user.User {
 		AvatarURL:    u.AvatarURL,
 		PasswordHash: u.PasswordHash,
 		Roles:        roles,
-		Role:         user.Role(u.Role),
 		Active:       u.Active,
 		Status:       user.UserStatus(u.Status),
+		Timestamps: common.Timestamps{
+			CreatedAt: u.CreatedAt,
+			UpdatedAt: u.UpdatedAt,
+		},
 	}
-	
-	// Set timestamps using the common.Timestamps
-	domainUser.Timestamps.CreatedAt = u.CreatedAt
-	domainUser.Timestamps.UpdatedAt = u.UpdatedAt
-	
-	return domainUser
 }
 
-// FromUser converts domain user.User to UserModel
-func (u *UserModel) FromUser(domainUser user.User) error {
+// FromDomainUser converts domain user.User to UserModel
+func (u *UserModel) FromDomainUser(domainUser user.User) error {
 	rolesJSON, err := json.Marshal(domainUser.Roles)
 	if err != nil {
 		return err
 	}
-	
+
 	u.ID = string(domainUser.ID)
 	u.Email = domainUser.Email
 	u.Username = domainUser.Username
@@ -69,11 +106,10 @@ func (u *UserModel) FromUser(domainUser user.User) error {
 	u.AvatarURL = domainUser.AvatarURL
 	u.PasswordHash = domainUser.PasswordHash
 	u.Roles = string(rolesJSON)
-	u.Role = string(domainUser.Role)
 	u.Active = domainUser.Active
 	u.Status = string(domainUser.Status)
-	u.CreatedAt = domainUser.Timestamps.CreatedAt
-	u.UpdatedAt = domainUser.Timestamps.UpdatedAt
-	
+	u.CreatedAt = domainUser.CreatedAt
+	u.UpdatedAt = domainUser.UpdatedAt
+
 	return nil
 }
