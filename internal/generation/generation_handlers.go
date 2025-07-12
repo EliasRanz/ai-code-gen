@@ -8,16 +8,14 @@ import (
 	"time"
 
 	"github.com/EliasRanz/ai-code-gen/internal/auth"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
 	"github.com/EliasRanz/ai-code-gen/internal/llm"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
 
-func RegisterRoutes(router *gin.Engine, service *Service, tokenValidator auth.TokenValidator, userRepo user.Repository) {
-	// Generation group with authentication middleware
+func RegisterRoutes(router *gin.Engine, service *Service) {
+	// Generation group - auth is handled by API Gateway
 	generationGroup := router.Group("/api/v1/generate")
-	generationGroup.Use(auth.AuthMiddleware(tokenValidator, userRepo))
 	{
 		generationGroup.POST("/stream", service.StreamGenerationHandler)
 		generationGroup.POST("/request-response", service.RequestResponseHandler)
@@ -31,10 +29,10 @@ func RegisterRoutes(router *gin.Engine, service *Service, tokenValidator auth.To
 
 // StreamGenerationHandler handles streaming AI generation requests
 func (s *Service) StreamGenerationHandler(c *gin.Context) {
-	// Check authentication
+	// Extract user context set by API Gateway
 	userID, _, _, authenticated := auth.GetUserContextFromMiddleware(c)
 	if !authenticated {
-		log.Warn().Msg("Unauthorized: No user context found")
+		log.Error().Msg("No user context found - API Gateway authentication may have failed")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
 		return
 	}
@@ -98,10 +96,10 @@ func (s *Service) StreamGenerationHandler(c *gin.Context) {
 
 // RequestResponseHandler handles non-streaming AI generation requests
 func (s *Service) RequestResponseHandler(c *gin.Context) {
-	// Check authentication
+	// Extract user context set by API Gateway
 	userID, _, _, authenticated := auth.GetUserContextFromMiddleware(c)
 	if !authenticated {
-		log.Warn().Msg("Unauthorized: No user context found")
+		log.Error().Msg("No user context found - API Gateway authentication may have failed")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
 		return
 	}
