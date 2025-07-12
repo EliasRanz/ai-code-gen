@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
-	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
 // RateLimiter manages rate limiting for AI requests
@@ -53,7 +53,7 @@ func (rl *RateLimiter) RateLimitMiddleware() gin.HandlerFunc {
 		limiter := rl.GetLimiter(key)
 		if !limiter.Allow() {
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "rate limit exceeded",
+				"error":       "rate limit exceeded",
 				"retry_after": time.Second / time.Duration(rl.rate),
 			})
 			c.Abort()
