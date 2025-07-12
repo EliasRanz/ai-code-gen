@@ -23,14 +23,6 @@ go.work.sum
 *~
 debug_test.go
 
-# Status/completion markdown files
-*_COMPLETE.md
-*_COMPLETED.md
-*_FIXED.md
-TODO_MASTER_LIST.md
-REMOVE_STUBS_NOW.md
-IMPLEMENTATION_STATUS.md
-
 # Build artifacts and distributions
 dist/
 build/
@@ -199,6 +191,9 @@ temp/
 **STATUS*.md
 **PROGRESS*.md
 **TODO*.md
+**LIST*.md
+**NOW*.md
+**checklist*.md
 
 **.test
 
