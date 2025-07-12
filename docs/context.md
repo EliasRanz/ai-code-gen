@@ -22,17 +22,32 @@ The system follows a structured approach to application generation:
 - **Streaming:** Server-Sent Events (SSE)
 - **Deployment:** Docker, Docker Compose, Kubernetes
 
-## Core Services
-- **API Gateway:** Unified entry point, routing, CORS, rate limiting, JWT validation
-- **Auth Service:** OAuth 2.0 flow, JWT issuance/validation, session management
-- **User Service:** User profiles, projects, chat sessions, CRUD APIs
-- **AI Service:** LLM integration, multi-language code generation (frontend, backend, infrastructure), prompt engineering, validation
+## Microservice-Focused Architecture
+Following ADR-013 and ADR-017, the system uses a fully consolidated service-based architecture where each service owns its complete implementation stack:
 
-## Clean Architecture Layers
-- **Domain:** Pure business logic, entities, interfaces (no external deps)
-- **Application:** Use cases, orchestrates domain logic
-- **Infrastructure:** Adapters for DB, LLM, auth, observability
-- **Interfaces:** HTTP/gRPC handlers, middleware, routing
+### Core Services (Complete Ownership Model)
+- **API Gateway:** Unified entry point, routing, CORS, rate limiting, JWT validation
+- **Auth Service:** OAuth 2.0 flow, JWT issuance/validation, session management, HTTP handlers, middleware
+- **User Service:** User profiles, projects, chat sessions, CRUD APIs, database adapters, HTTP/gRPC handlers
+- **AI Service:** LLM integration, code generation, streaming, database adapters, HTTP handlers, LLM clients
+
+### Package Structure (Target Architecture)
+- **Service Packages:** (`internal/user/`, `internal/ai/`, `internal/auth/`, `internal/gateway/`) - Complete service implementation including:
+  - Domain entities and business logic
+  - Database adapters and repositories  
+  - HTTP handlers and gRPC servers
+  - Service-specific clients and adapters
+- **Shared Packages:** 
+  - `internal/utilities/` - Shared types (UserID, ProjectID, errors, pagination)
+  - `internal/config/` - Configuration management
+  - `internal/observability/` - Logging, metrics, tracing
+  - `internal/validation/` - Validation utilities
+
+### Migration Status (ADR-017)
+🚧 **In Progress**: Eliminating `internal/infrastructure/` and `internal/interfaces/` over-abstractions
+- **Current State**: Over-abstracted with artificial separation of concerns
+- **Target State**: Each service owns its complete stack (domain + adapters + handlers)
+- **Migration Plan**: See ADR-017 for detailed 4-week implementation plan
 
 ## Authentication Architecture
 The authentication system is centralized in the `internal/auth` package with complete business logic implementation:
@@ -71,20 +86,24 @@ The authentication system is centralized in the `internal/auth` package with com
 - Input validation, error handling, rate limiting
 - Structured logging (zerolog), metrics, tracing (OpenTelemetry)
 
-## Current Architecture Changes (2025-01-11)
+## Current Architecture Changes (2025-01-12)
+- **Domain Cleanup Completed**: Successfully moved from `internal/common` to `internal/utilities`, eliminated `internal/application` layer
+- **Infrastructure Abstraction Elimination**: ADR-017 in progress - migrating from over-abstracted `internal/infrastructure` and `internal/interfaces` to complete service ownership
 - **Auth Centralization**: Centralized auth server implementation (see ADR-012)
-- **Implementation Status**: See `CENTRALIZED_AUTH_PLAN.md` for current progress
-- **Auth Service**: Single source of truth for all authentication/authorization
-- **Service Cleanup**: Removing distributed auth logic from other services
+- **Implementation Status**: See `CENTRALIZED_AUTH_PLAN.md` for auth progress, ADR-017 for infrastructure migration
+- **Service Ownership**: Moving toward complete service ownership model where each service contains domain + adapters + handlers
 
 ## Agent Guidance
-- **All code follows Clean Architecture and SOLID principles**
-- **ADRs**: Architectural decisions are documented in `ADRs/`
-- **All business logic is isolated and testable**
+- **All code follows Clean Architecture and SOLID principles within service boundaries**
+- **ADRs**: Architectural decisions are documented in `ADRs/` - See ADR-017 for current infrastructure migration
+- **Service Ownership**: Each service should own its complete implementation (domain + adapters + handlers)
+- **Migration Priority**: Work toward ADR-017 target architecture - eliminate `internal/infrastructure` and `internal/interfaces` over-abstractions
+- **All business logic is isolated and testable within service packages**
 - **All changes must be incremental, reviewed, and tested**
 - **Auth Changes**: Follow centralized auth server pattern per ADR-012
 - **Test Standards**: Follow Go test conventions with *_test.go naming pattern
 - **Type Safety**: Use proper type aliases (UserID, SessionID) and ensure type compatibility
+- **Package Structure**: Prefer service-specific implementations over shared abstractions
 - **See `README.md` for service details and development instructions**
 
 ## Entry Points
