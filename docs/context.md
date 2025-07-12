@@ -111,6 +111,7 @@ The authentication system is centralized in the `internal/auth` package with com
 - **Frontend:** `web/` (Next.js app)
 - **Protobuf:** `api/proto/`
 - **Migrations:** `migrations/`
+- **Implementation Plans:** `docs/implementation/` (organized phase-specific documentation)
 
 ## For AI Agents
 - Use this file as the main entry point for project context
