@@ -58,10 +58,11 @@ type DatabaseConfig struct {
 
 // RedisConfig holds Redis configuration
 type RedisConfig struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Password string `json:"password"`
-	DB       int    `json:"db"`
+	Host        string        `json:"host"`
+	Port        int           `json:"port"`
+	Password    string        `json:"password"`
+	DB          int           `json:"db"`
+	AuthCacheTTL string       `json:"auth_cache_ttl"` // TTL for auth cache (e.g., "5m")
 }
 
 // AuthConfig holds authentication configuration
@@ -139,10 +140,11 @@ func Load() (*Config, error) {
 			ConnMaxIdleTime: getEnv("DATABASE_CONN_MAX_IDLE_TIME", "1m"),
 		},
 		Redis: RedisConfig{
-			Host:     getEnv("REDIS_HOST", "localhost"),
-			Port:     getEnvAsInt("REDIS_PORT", 6379),
-			Password: getEnv("REDIS_PASSWORD", ""),
-			DB:       getEnvAsInt("REDIS_DB", 0),
+			Host:        getEnv("REDIS_HOST", "localhost"),
+			Port:        getEnvAsInt("REDIS_PORT", 6379),
+			Password:    getEnv("REDIS_PASSWORD", ""),
+			DB:          getEnvAsInt("REDIS_DB", 0),
+			AuthCacheTTL: getEnv("REDIS_AUTH_CACHE_TTL", "5m"),
 		},
 		Auth: AuthConfig{
 			JWTSecret: getEnv("JWT_SECRET", "your-secret-key"),

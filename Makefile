@@ -1,6 +1,6 @@
 # Makefile for AI UI Generator
 
-.PHONY: help build test clean up down logs dev prod install migrate check-standards refactor setup-tests
+.PHONY: help build test test-performance test-benchmark test-benchmark-quick test-benchmark-single test-load test-stress performance-report sla-demo clean up down logs dev prod install migrate check-standards refactor setup-tests
 
 # Default target
 help: ## Show this help message
@@ -33,9 +33,54 @@ build: ## Build all services
 
 test: ## Run all tests
 	@echo "Running Go tests..."
-	go test -v -race ./... -json | tparse
+	go test -v -race -timeout=10m ./... -json | tparse
 	@echo "Running frontend tests..."
 	cd web && npm test
+
+test-performance: ## Run comprehensive performance tests for Redis auth cache (30min max)
+	@echo "🚀 Running Redis Auth Cache Performance Tests..."
+	@echo "Ensure Redis is running: make dev"
+	@mkdir -p ./performance_reports
+	timeout 30m bash -c 'PERFORMANCE_TESTS=1 go run ./tests/performance/cmd/performance_runner.go ./performance_reports' || echo "⚠️ Performance tests timed out after 30 minutes"
+	@echo "📊 Performance test reports available in ./performance_reports/"
+
+test-benchmark: ## Run Go benchmark tests only (2s each, 5min max)
+	@echo "Running Go benchmark tests..."
+	PERFORMANCE_TESTS=1 go test -run="^$$" -bench=. -benchmem -benchtime=2s -timeout=5m ./tests/performance/auth_cache/
+	
+test-benchmark-quick: ## Run quick benchmark tests (200ms each, 30s max)
+	@echo "Running quick benchmark tests..."
+	PERFORMANCE_TESTS=1 go test -run="^$$" -bench="BenchmarkCacheGet$$|BenchmarkCacheSet$$|BenchmarkCacheGetMiss$$" -benchmem -benchtime=200ms -timeout=30s ./tests/performance/auth_cache/
+
+test-benchmark-single: ## Run single cache get benchmark (1s, 10s max)
+	@echo "Running single benchmark test..."
+	PERFORMANCE_TESTS=1 go test -run="^$$" -bench="BenchmarkCacheGet$$" -benchmem -benchtime=1s -timeout=10s ./tests/performance/auth_cache/
+	
+test-load: ## Run load tests with Vegeta (10min max)
+	@echo "Running load tests..."
+	PERFORMANCE_TESTS=1 go test -v -timeout=10m ./tests/performance/auth_cache/ -run TestAuthCacheLoadPerformance
+	
+test-stress: ## Run stress tests (15min max)
+	@echo "Running stress tests..."
+	PERFORMANCE_TESTS=1 go test -v -timeout=15m ./tests/performance/auth_cache/ -run TestAuthCacheStressTest
+
+performance-report: ## Generate performance reports from existing data
+	@echo "Generating performance reports..."
+	@mkdir -p ./performance_reports
+	go run ./tests/performance/cmd/performance_runner.go ./performance_reports
+
+# DevOps Tools
+devops-performance: ## Run comprehensive performance testing automation
+	@echo "🚀 Running DevOps Performance Testing Automation..."
+	PERFORMANCE_TESTS=1 ./devops/scripts/performance-test.sh
+
+devops-monitor: ## Start Redis monitoring with real-time metrics
+	@echo "📊 Starting Redis monitoring..."
+	go run ./devops/monitoring/redis-monitor.go
+
+devops-sla: ## Validate SLA configuration and thresholds
+	@echo "🎯 Validating SLA Configuration..."
+	go run ./devops/performance/sla-validator.go
 
 lint: ## Run linting
 	@echo "Running Go linting..."

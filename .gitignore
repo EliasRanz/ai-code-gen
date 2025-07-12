@@ -5,6 +5,8 @@ ai-service
 api-gateway
 auth-service
 server
+performance_runner
+sla_demo
 *.exe
 *.dll
 *.so
@@ -207,3 +209,5 @@ temp/
 **TODO*.md
 
 **.test
+
+performance_reports/**

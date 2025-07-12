@@ -157,7 +157,7 @@ See [docs/PROTOBUF_GENERATION.md](docs/PROTOBUF_GENERATION.md) for detailed info
 ### Testing
 
 ```bash
-# Run Go tests
+# Run all tests (performance tests are skipped by default)
 go test ./...
 
 # Run frontend tests
@@ -165,7 +165,18 @@ cd web && npm test
 
 # Run integration tests
 go test -tags=integration ./...
+
+# Run performance tests (requires Docker and PERFORMANCE_TESTS=1)
+PERFORMANCE_TESTS=1 go test ./tests/performance/...
+
+# Or use make targets for performance testing
+make test-performance    # Full performance test suite
+make test-benchmark     # Go benchmark tests only
+make test-load         # Load tests with Vegeta
+make test-stress       # Stress tests
 ```
+
+**Note**: Performance tests are disabled by default since they require Docker and are slower. Set `PERFORMANCE_TESTS=1` environment variable to enable them explicitly.
 
 ### Code Generation
 
