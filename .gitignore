@@ -198,9 +198,10 @@ temp/
 # api/proto/**/*.pb.go - commented out to keep them tracked
 
 # Copilot specific files
-**_*SUMMARY*.md
-**_*COMPLETE*.md
-**_*PLAN*.md
-**_FIXED*.md
+**SUMMARY*.md
+**COMPLETE*.md
+**PLAN*.md
+**FIXED*.md
+**STATUS*.md
 
 **.test
