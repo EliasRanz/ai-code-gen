@@ -9,8 +9,8 @@ import (
 // ValidationFunc is a function type that defines the signature for validation functions
 type ValidationFunc func(code string) (bool, []string, error)
 
-// GenerationHistory stores the prompt and code for AI generations
-type GenerationHistory struct {
+// SimpleGenerationHistory stores basic prompt and code for AI generations (legacy)
+type SimpleGenerationHistory struct {
 	Prompt string
 	Code   string
 }
@@ -27,14 +27,14 @@ type Service struct {
 	llmClient    LLMClient
 	validateFunc ValidationFunc // optional, for testability
 
-	history map[string][]GenerationHistory // userID -> history
+	history map[string][]SimpleGenerationHistory // userID -> history
 }
 
 // NewService creates a new AI service
 func NewService(llmClient LLMClient) *Service {
 	return &Service{
 		llmClient: llmClient,
-		history:   make(map[string][]GenerationHistory),
+		history:   make(map[string][]SimpleGenerationHistory),
 	}
 }
 
@@ -78,17 +78,17 @@ func (s *Service) addToHistory(userID, prompt, code string) {
 		return
 	}
 	if s.history == nil {
-		s.history = make(map[string][]GenerationHistory)
+		s.history = make(map[string][]SimpleGenerationHistory)
 	}
 	h := s.history[userID]
-	h = append([]GenerationHistory{{Prompt: prompt, Code: code}}, h...)
+	h = append([]SimpleGenerationHistory{{Prompt: prompt, Code: code}}, h...)
 	if len(h) > 10 {
 		h = h[:10]
 	}
 	s.history[userID] = h
 }
 
-func (s *Service) GetHistory(userID string) []GenerationHistory {
+func (s *Service) GetHistory(userID string) []SimpleGenerationHistory {
 	if s.history == nil || userID == "" {
 		return nil
 	}

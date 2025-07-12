@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
+	"github.com/EliasRanz/ai-code-gen/internal/user"
 	"github.com/go-playground/validator/v10"
 )
 

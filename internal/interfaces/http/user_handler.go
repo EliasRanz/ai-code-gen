@@ -7,37 +7,37 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/EliasRanz/ai-code-gen/internal/application/user"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
+	userDomain "github.com/EliasRanz/ai-code-gen/internal/user"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
 // UserHandler handles HTTP requests for user operations
 type UserHandler struct {
-	createUserUC *user.CreateUserUseCase
-	getUserUC    *user.GetUserUseCase
-	updateUserUC *user.UpdateUserUseCase
-	listUsersUC  *user.ListUsersUseCase
-	deleteUserUC *user.DeleteUserUseCase
-	logger       observability.Logger
+	userCreator   *userDomain.UserCreator
+	userRetriever *userDomain.UserRetriever
+	userUpdater   *userDomain.UserUpdater
+	userLister    *userDomain.UserLister
+	userDeleter   *userDomain.UserDeleter
+	logger        observability.Logger
 }
 
 // NewUserHandler creates a new user handler
 func NewUserHandler(
-	createUserUC *user.CreateUserUseCase,
-	getUserUC *user.GetUserUseCase,
-	updateUserUC *user.UpdateUserUseCase,
-	listUsersUC *user.ListUsersUseCase,
-	deleteUserUC *user.DeleteUserUseCase,
+	userCreator *userDomain.UserCreator,
+	userRetriever *userDomain.UserRetriever,
+	userUpdater *userDomain.UserUpdater,
+	userLister *userDomain.UserLister,
+	userDeleter *userDomain.UserDeleter,
 	logger observability.Logger,
 ) *UserHandler {
 	return &UserHandler{
-		createUserUC: createUserUC,
-		getUserUC:    getUserUC,
-		updateUserUC: updateUserUC,
-		listUsersUC:  listUsersUC,
-		deleteUserUC: deleteUserUC,
-		logger:       logger,
+		userCreator:   userCreator,
+		userRetriever: userRetriever,
+		userUpdater:   userUpdater,
+		userLister:    userLister,
+		userDeleter:   userDeleter,
+		logger:        logger,
 	}
 }
 
@@ -64,7 +64,7 @@ func (h *UserHandler) RegisterUserRoutes(rg *gin.RouterGroup) {
 
 // CreateUser handles POST /users
 func (h *UserHandler) CreateUser(c *gin.Context) {
-	var req user.CreateUserRequest
+	var req userDomain.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Warn("Invalid request body", map[string]interface{}{
 			"error": err.Error(),
@@ -73,7 +73,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.createUserUC.Execute(c.Request.Context(), req)
+	resp, err := h.userCreator.Execute(c.Request.Context(), req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -95,11 +95,11 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
-	req := user.GetUserRequest{
-		UserID: common.UserID(userIDStr),
+	req := userDomain.GetUserRequest{
+		UserID: utilities.UserID(userIDStr),
 	}
 
-	resp, err := h.getUserUC.Execute(c.Request.Context(), req)
+	resp, err := h.userRetriever.Execute(c.Request.Context(), req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -116,7 +116,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	var req user.UpdateUserRequest
+	var req userDomain.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Warn("Invalid request body", map[string]interface{}{
 			"error": err.Error(),
@@ -125,9 +125,9 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	req.UserID = common.UserID(userIDStr)
+	req.UserID = utilities.UserID(userIDStr)
 
-	resp, err := h.updateUserUC.Execute(c.Request.Context(), req)
+	resp, err := h.userUpdater.Execute(c.Request.Context(), req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -146,13 +146,13 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 	limit, _ := strconv.ParseInt(c.DefaultQuery("limit", "20"), 10, 32)
 	search := c.Query("search")
 
-	req := user.ListUsersRequest{
+	req := userDomain.ListUsersRequest{
 		Page:   int32(page),
 		Limit:  int32(limit),
 		Search: search,
 	}
 
-	resp, err := h.listUsersUC.Execute(c.Request.Context(), req)
+	resp, err := h.userLister.Execute(c.Request.Context(), req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -169,11 +169,11 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	req := user.DeleteUserRequest{
-		UserID: common.UserID(userIDStr),
+	req := userDomain.DeleteUserRequest{
+		UserID: utilities.UserID(userIDStr),
 	}
 
-	resp, err := h.deleteUserUC.Execute(c.Request.Context(), req)
+	resp, err := h.userDeleter.Execute(c.Request.Context(), req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -193,17 +193,17 @@ func (h *UserHandler) handleError(c *gin.Context, err error) {
 		"method": c.Request.Method,
 	})
 
-	if common.IsValidationError(err) {
+	if utilities.IsValidationError(err) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if common.IsNotFoundError(err) {
+	if utilities.IsNotFoundError(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	if common.IsConflictError(err) {
+	if utilities.IsConflictError(err) {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}

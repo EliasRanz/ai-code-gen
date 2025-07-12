@@ -6,28 +6,28 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/EliasRanz/ai-code-gen/internal/application/ai"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
+	"github.com/EliasRanz/ai-code-gen/internal/ai"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
 // AIHandler handles HTTP requests for AI operations
 type AIHandler struct {
-	generateCodeUC *ai.GenerateCodeUseCase
-	streamCodeUC   *ai.StreamCodeUseCase
-	logger         observability.Logger
+	generateCodeService *ai.GenerateCodeService
+	streamCodeService   *ai.StreamCodeService
+	logger              observability.Logger
 }
 
 // NewAIHandler creates a new AI handler
 func NewAIHandler(
-	generateCodeUC *ai.GenerateCodeUseCase,
-	streamCodeUC *ai.StreamCodeUseCase,
+	generateCodeService *ai.GenerateCodeService,
+	streamCodeService *ai.StreamCodeService,
 	logger observability.Logger,
 ) *AIHandler {
 	return &AIHandler{
-		generateCodeUC: generateCodeUC,
-		streamCodeUC:   streamCodeUC,
-		logger:         logger,
+		generateCodeService: generateCodeService,
+		streamCodeService:   streamCodeService,
+		logger:              logger,
 	}
 }
 
@@ -42,7 +42,7 @@ func (h *AIHandler) GenerateCode(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.generateCodeUC.Execute(c.Request.Context(), req)
+	resp, err := h.generateCodeService.Execute(c.Request.Context(), req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -73,20 +73,12 @@ func (h *AIHandler) StreamCode(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 	c.Header("Access-Control-Allow-Origin", "*")
 
-	// Create a channel to receive streaming responses
-	responseChan := make(chan ai.StreamCodeResponse, 10)
-	errorChan := make(chan error, 1)
-
-	// Start streaming in a goroutine
-	go func() {
-		defer close(responseChan)
-		defer close(errorChan)
-
-		err := h.streamCodeUC.Execute(c.Request.Context(), req, responseChan)
-		if err != nil {
-			errorChan <- err
-		}
-	}()
+	// Start streaming
+	responseChan, err := h.streamCodeService.Execute(c.Request.Context(), req)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
 
 	// Send streaming responses
 	for {
@@ -104,13 +96,12 @@ func (h *AIHandler) StreamCode(c *gin.Context) {
 			c.SSEvent("data", resp)
 			c.Writer.Flush()
 
-		case err := <-errorChan:
-			if err != nil {
-				h.logger.Error("Code streaming failed", err, map[string]interface{}{
+			// If there's an error in the response, stop streaming
+			if resp.Type == "error" {
+				h.logger.Error("Code streaming failed", nil, map[string]interface{}{
 					"prompt_length": len(req.Prompt),
+					"error":         resp.Error,
 				})
-				c.SSEvent("error", gin.H{"error": err.Error()})
-				c.Writer.Flush()
 				return
 			}
 
@@ -129,12 +120,12 @@ func (h *AIHandler) handleError(c *gin.Context, err error) {
 		"method": c.Request.Method,
 	})
 
-	if common.IsValidationError(err) {
+	if utilities.IsValidationError(err) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if common.IsNotFoundError(err) {
+	if utilities.IsNotFoundError(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}

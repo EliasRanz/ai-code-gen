@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/user"
+	"github.com/EliasRanz/ai-code-gen/internal/user"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 	"gorm.io/gorm"
 )
 
 // ProjectModel is the GORM model for a project
 type ProjectModel struct {
-	ID          common.ProjectID   `gorm:"type:uuid;primary_key"`
-	UserID      common.UserID      `gorm:"type:uuid"`
-	Name        string             `gorm:"size:255;not null"`
-	Description string             `gorm:"type:text"`
-	Status      user.ProjectStatus `gorm:"size:50"`
+	ID          utilities.ProjectID `gorm:"type:uuid;primary_key"`
+	UserID      utilities.UserID    `gorm:"type:uuid"`
+	Name        string              `gorm:"size:255;not null"`
+	Description string              `gorm:"type:text"`
+	Status      user.ProjectStatus  `gorm:"size:50"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
@@ -45,7 +45,7 @@ func (pm *ProjectModel) ToProject() user.Project {
 		Name:        pm.Name,
 		Description: pm.Description,
 		Status:      pm.Status,
-		Timestamps: common.Timestamps{
+		Timestamps: utilities.Timestamps{
 			CreatedAt: pm.CreatedAt,
 			UpdatedAt: pm.UpdatedAt,
 		},
@@ -96,7 +96,7 @@ func (r *PostgreSQLProjectRepository) Update(ctx context.Context, project user.P
 }
 
 // Delete deletes a project
-func (r *PostgreSQLProjectRepository) Delete(ctx context.Context, id common.ProjectID) error {
+func (r *PostgreSQLProjectRepository) Delete(ctx context.Context, id utilities.ProjectID) error {
 	result := r.db.WithContext(ctx).Delete(&ProjectModel{}, "id = ?", id)
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete project: %w", result.Error)
@@ -110,7 +110,7 @@ func (r *PostgreSQLProjectRepository) Delete(ctx context.Context, id common.Proj
 }
 
 // List lists projects with pagination
-func (r *PostgreSQLProjectRepository) List(ctx context.Context, params common.PaginationParams, search string, status user.ProjectStatus) ([]user.Project, error) {
+func (r *PostgreSQLProjectRepository) List(ctx context.Context, params utilities.PaginationParams, search string, status user.ProjectStatus) ([]user.Project, error) {
 	var projectModels []ProjectModel
 	query := r.db.WithContext(ctx).Order("created_at DESC").Limit(int(params.Limit)).Offset(int(params.Offset()))
 
@@ -133,7 +133,7 @@ func (r *PostgreSQLProjectRepository) List(ctx context.Context, params common.Pa
 }
 
 // ListByUserID lists projects by user ID with pagination
-func (r *PostgreSQLProjectRepository) ListByUserID(ctx context.Context, userID common.UserID, params common.PaginationParams) ([]user.Project, error) {
+func (r *PostgreSQLProjectRepository) ListByUserID(ctx context.Context, userID utilities.UserID, params utilities.PaginationParams) ([]user.Project, error) {
 	var projectModels []ProjectModel
 	query := r.db.WithContext(ctx).Where("user_id = ?", userID).Order("created_at DESC").Limit(int(params.Limit)).Offset(int(params.Offset()))
 
@@ -149,7 +149,7 @@ func (r *PostgreSQLProjectRepository) ListByUserID(ctx context.Context, userID c
 }
 
 // GetByID retrieves a project by ID
-func (r *PostgreSQLProjectRepository) GetByID(ctx context.Context, id common.ProjectID) (user.Project, error) {
+func (r *PostgreSQLProjectRepository) GetByID(ctx context.Context, id utilities.ProjectID) (user.Project, error) {
 	var projectModel ProjectModel
 	if err := r.db.WithContext(ctx).First(&projectModel, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {

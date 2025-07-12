@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EliasRanz/ai-code-gen/internal/domain/ai"
+	"github.com/EliasRanz/ai-code-gen/internal/ai"
 )
 
 // OpenAIService implements LLMService using OpenAI API
@@ -56,8 +56,8 @@ type OpenAIResponse struct {
 
 // Choice represents a completion choice
 type Choice struct {
-	Index   int         `json:"index"`
-	Message Message     `json:"message"`
+	Index   int          `json:"index"`
+	Message Message      `json:"message"`
 	Delta   MessageDelta `json:"delta,omitempty"`
 }
 
@@ -152,7 +152,7 @@ func (s *OpenAIService) Stream(ctx context.Context, req ai.GenerationRequest, ch
 func (s *OpenAIService) Validate(ctx context.Context, code string) (ai.ValidationResult, error) {
 	// Simple validation - check if code is not empty and has basic structure
 	isValid := strings.TrimSpace(code) != "" && (strings.Contains(code, "func") || strings.Contains(code, "class") || strings.Contains(code, "def"))
-	
+
 	var issues []string
 	if !isValid {
 		issues = append(issues, "Code appears to be empty or malformed")
@@ -196,7 +196,7 @@ func (s *OpenAIService) makeRequest(ctx context.Context, reqBody OpenAIRequest) 
 // processStreamResponse processes Server-Sent Events from OpenAI streaming API
 func (s *OpenAIService) processStreamResponse(ctx context.Context, body io.Reader, ch chan<- ai.StreamChunk) error {
 	decoder := json.NewDecoder(body)
-	
+
 	for {
 		select {
 		case <-ctx.Done():

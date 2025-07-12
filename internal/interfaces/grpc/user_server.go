@@ -5,44 +5,43 @@ import (
 	"fmt"
 
 	"github.com/EliasRanz/ai-code-gen/api/proto/user"
-	applicationuser "github.com/EliasRanz/ai-code-gen/internal/application/user"
-	"github.com/EliasRanz/ai-code-gen/internal/domain/common"
-	domainUser "github.com/EliasRanz/ai-code-gen/internal/domain/user"
+	userDomain "github.com/EliasRanz/ai-code-gen/internal/user"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 	"github.com/rs/zerolog/log"
 )
 
 // UserServer implements the UserService gRPC interface
 type UserServer struct {
 	user.UnimplementedUserServiceServer
-	createUserUC *applicationuser.CreateUserUseCase
-	getUserUC    *applicationuser.GetUserUseCase
-	updateUserUC *applicationuser.UpdateUserUseCase
-	deleteUserUC *applicationuser.DeleteUserUseCase
-	listUsersUC  *applicationuser.ListUsersUseCase
+	userCreator   *userDomain.UserCreator
+	userRetriever *userDomain.UserRetriever
+	userUpdater   *userDomain.UserUpdater
+	userDeleter   *userDomain.UserDeleter
+	userLister    *userDomain.UserLister
 }
 
 // NewUserServer creates a new gRPC server instance
 func NewUserServer(
-	createUserUC *applicationuser.CreateUserUseCase,
-	getUserUC *applicationuser.GetUserUseCase,
-	updateUserUC *applicationuser.UpdateUserUseCase,
-	deleteUserUC *applicationuser.DeleteUserUseCase,
-	listUsersUC *applicationuser.ListUsersUseCase,
+	userCreator *userDomain.UserCreator,
+	userRetriever *userDomain.UserRetriever,
+	userUpdater *userDomain.UserUpdater,
+	userDeleter *userDomain.UserDeleter,
+	userLister *userDomain.UserLister,
 ) *UserServer {
 	return &UserServer{
-		createUserUC: createUserUC,
-		getUserUC:    getUserUC,
-		updateUserUC: updateUserUC,
-		deleteUserUC: deleteUserUC,
-		listUsersUC:  listUsersUC,
+		userCreator:   userCreator,
+		userRetriever: userRetriever,
+		userUpdater:   userUpdater,
+		userDeleter:   userDeleter,
+		userLister:    userLister,
 	}
 }
 
-func convertDomainUserToPB(u *domainUser.User) *user.User {
+func convertDomainUserToPB(u *userDomain.User) *user.User {
 	return &user.User{
 		Id:        fmt.Sprint(u.ID),
 		Email:     u.Email,
-		Name:      u.Username,
+		Name:      u.Name,
 		AvatarUrl: u.AvatarURL,
 		Roles:     u.Roles,
 		CreatedAt: u.CreatedAt.Unix(),
@@ -66,7 +65,7 @@ func (s *UserServer) CreateUser(ctx context.Context, req *user.CreateUserRequest
 	}
 
 	// Create domain user object
-	createReq := applicationuser.CreateUserRequest{
+	createReq := userDomain.CreateUserRequest{
 		Email:     req.Email,
 		Name:      req.Name,
 		AvatarURL: req.AvatarUrl,
@@ -74,7 +73,7 @@ func (s *UserServer) CreateUser(ctx context.Context, req *user.CreateUserRequest
 	}
 
 	// Create user using service
-	resp, err := s.createUserUC.Execute(ctx, createReq)
+	resp, err := s.userCreator.Execute(ctx, createReq)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create user")
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -99,10 +98,10 @@ func (s *UserServer) GetUser(ctx context.Context, req *user.GetUserRequest) (*us
 	}
 
 	// Get user using service
-	getReq := applicationuser.GetUserRequest{
-		UserID: common.UserID(req.Id),
+	getReq := userDomain.GetUserRequest{
+		UserID: utilities.UserID(req.Id),
 	}
-	resp, err := s.getUserUC.Execute(ctx, getReq)
+	resp, err := s.userRetriever.Execute(ctx, getReq)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user")
 		return nil, fmt.Errorf("failed to get user: %w", err)
@@ -127,15 +126,21 @@ func (s *UserServer) UpdateUser(ctx context.Context, req *user.UpdateUserRequest
 	}
 
 	// Create update request DTO
-	updateReq := applicationuser.UpdateUserRequest{
-		UserID:    common.UserID(req.Id),
+	var role *userDomain.Role
+	if len(req.Roles) > 0 {
+		r := userDomain.Role(req.Roles[0]) // Take first role for simplicity
+		role = &r
+	}
+
+	updateReq := userDomain.UpdateUserRequest{
+		UserID:    utilities.UserID(req.Id),
 		Name:      &req.Name,
 		AvatarURL: &req.AvatarUrl,
-		Roles:     &req.Roles,
+		Role:      role,
 	}
 
 	// Update user using service
-	resp, err := s.updateUserUC.Execute(ctx, updateReq)
+	resp, err := s.userUpdater.Execute(ctx, updateReq)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to update user")
 		return nil, fmt.Errorf("failed to update user: %w", err)
@@ -160,10 +165,10 @@ func (s *UserServer) DeleteUser(ctx context.Context, req *user.DeleteUserRequest
 	}
 
 	// Delete user using service
-	deleteReq := applicationuser.DeleteUserRequest{
-		UserID: common.UserID(req.Id),
+	deleteReq := userDomain.DeleteUserRequest{
+		UserID: utilities.UserID(req.Id),
 	}
-	_, err := s.deleteUserUC.Execute(ctx, deleteReq)
+	_, err := s.userDeleter.Execute(ctx, deleteReq)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to delete user")
 		return nil, fmt.Errorf("failed to delete user: %w", err)
@@ -177,12 +182,12 @@ func (s *UserServer) ListUsers(ctx context.Context, req *user.ListUsersRequest) 
 	log.Info().Msg("gRPC ListUsers called")
 
 	// List users using service
-	listReq := applicationuser.ListUsersRequest{
+	listReq := userDomain.ListUsersRequest{
 		Page:   req.Page,
 		Limit:  req.Limit,
 		Search: req.Search,
 	}
-	resp, err := s.listUsersUC.Execute(ctx, listReq)
+	resp, err := s.userLister.Execute(ctx, listReq)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list users")
 		return nil, fmt.Errorf("failed to list users: %w", err)
@@ -196,6 +201,6 @@ func (s *UserServer) ListUsers(ctx context.Context, req *user.ListUsersRequest) 
 
 	return &user.ListUsersResponse{
 		Users: pbUsers,
-		Total: int32(resp.TotalCount),
+		Total: int32(resp.Total),
 	}, nil
 }
