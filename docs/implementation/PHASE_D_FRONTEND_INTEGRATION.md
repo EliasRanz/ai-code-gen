@@ -153,7 +153,6 @@ function isTokenExpired(token: string): boolean {
 ### Version Control:
 - [ ] **Commit changes**: `git add . && git commit -m "feat: implement NextAuth.js direct auth service integration"`
 - [ ] **Validate build**: Ensure all tests pass and frontend builds successfully before committing
-- [ ] **Push to feature branch**: `git push origin feature/infrastructure-consolidation-auth-integration`
 
 ---
 
@@ -1025,4 +1024,3 @@ frontend_testing:
 ### Version Control:
 - [ ] **Commit changes**: `git add . && git commit -m "feat: update frontend API integration for centralized auth"`
 - [ ] **Validate build**: Ensure all tests pass and frontend builds successfully before committing
-- [ ] **Push to feature branch**: `git push origin feature/infrastructure-consolidation-auth-integration`

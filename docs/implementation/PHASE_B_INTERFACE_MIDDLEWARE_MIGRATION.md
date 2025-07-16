@@ -106,7 +106,6 @@ type AIHandler interface {
 ### Version Control:
 - [ ] **Commit changes**: `git add . && git commit -m "feat: consolidate HTTP handlers into service packages"`
 - [ ] **Validate build**: Ensure all tests pass and services compile before committing
-- [ ] **Push to feature branch**: `git push origin feature/infrastructure-consolidation-auth-integration`
 
 ---
 
@@ -306,7 +305,6 @@ func (g *ObservableGateway) ProcessRequest(ctx Context, request *HTTPRequest) (*
 ### Version Control:
 - [ ] **Commit changes**: `git add . && git commit -m "feat: consolidate gateway components while preserving auth integration"`
 - [ ] **Validate build**: Ensure all tests pass and services compile before committing
-- [ ] **Push to feature branch**: `git push origin feature/infrastructure-consolidation-auth-integration`
 
 ---
 
@@ -410,4 +408,3 @@ type GRPCInterceptor interface {
 ### Version Control:
 - [ ] **Commit changes**: `git add . && git commit -m "feat: complete gRPC and service component migration"`
 - [ ] **Validate build**: Ensure all tests pass and services compile before committing
-- [ ] **Push to feature branch**: `git push origin feature/infrastructure-consolidation-auth-integration`

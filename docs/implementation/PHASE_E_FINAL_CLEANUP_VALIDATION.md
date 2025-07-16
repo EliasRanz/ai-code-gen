@@ -30,7 +30,6 @@
 ### Version Control:
 - [ ] **Commit changes**: `git add . && git commit -m "chore: remove legacy directories and update documentation"`
 - [ ] **Validate build**: Ensure all tests pass and services compile before committing
-- [ ] **Push to feature branch**: `git push origin feature/infrastructure-consolidation-auth-integration`
 
 ---
 
