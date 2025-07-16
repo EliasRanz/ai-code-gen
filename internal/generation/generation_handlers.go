@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/EliasRanz/ai-code-gen/internal/auth"
-	"github.com/EliasRanz/ai-code-gen/internal/llm"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
@@ -67,17 +66,8 @@ func (s *Service) StreamGenerationHandler(c *gin.Context) {
 		Str("stream_id", streamID).
 		Msg("Streaming generation request")
 
-	// Create generation request
-	genReq := &llm.GenerationRequest{
-		Model:       req.Model,
-		Prompt:      req.Prompt,
-		MaxTokens:   req.MaxTokens,
-		Temperature: req.Temperature,
-		Metadata:    req.Metadata,
-	}
-
-	// Start streaming
-	respChan, err := s.llmClient.GenerateStream(c.Request.Context(), genReq)
+	// Create AI generation request using the builder pattern
+	response, err := s.aiService.GenerateWithBuilder(c.Request.Context(), string(userID), req.Prompt)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start stream generation")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start generation"})
@@ -90,8 +80,9 @@ func (s *Service) StreamGenerationHandler(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 	c.Header("Access-Control-Allow-Origin", "*")
 
-	// Stream responses
-	s.streamResponse(c, respChan, req.UserID, req.ProjectID)
+	// Stream the response (simplified - single response)
+	c.Writer.Write([]byte(fmt.Sprintf("data: %s\n\n", response.Content)))
+	c.Writer.Flush()
 }
 
 // RequestResponseHandler handles non-streaming AI generation requests
@@ -123,23 +114,20 @@ func (s *Service) RequestResponseHandler(c *gin.Context) {
 	// Set user ID from context
 	req.UserID = string(userID)
 
-	// Create a request to the LLM
-	llmReq := &llm.GenerationRequest{
-		Model:       req.Model,
-		Prompt:      req.Prompt,
-		MaxTokens:   req.MaxTokens,
-		Temperature: req.Temperature,
-		Metadata:    req.Metadata,
-		UserID:      req.UserID,
-		ProjectID:   req.ProjectID,
-	}
-
-	// Generate response
-	resp, err := s.llmClient.Generate(c.Request.Context(), llmReq)
+	// Generate response using AI service
+	response, err := s.aiService.GenerateWithBuilder(c.Request.Context(), req.UserID, req.Prompt)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate response")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Generation failed"})
 		return
+	}
+
+	// Convert to expected response format
+	resp := map[string]interface{}{
+		"content":     response.Content,
+		"tokens_used": response.TokensUsed,
+		"provider":    response.Provider,
+		"model":       response.Model,
 	}
 
 	c.JSON(http.StatusOK, resp)
@@ -147,14 +135,8 @@ func (s *Service) RequestResponseHandler(c *gin.Context) {
 
 // GetModelsHandler returns available models
 func (s *Service) GetModelsHandler(c *gin.Context) {
-	models, err := s.llmClient.GetModels(c.Request.Context())
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to get models")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get models"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"models": models})
+	providers := s.aiService.GetAvailableProviders()
+	c.JSON(http.StatusOK, gin.H{"providers": providers})
 }
 
 // HealthHandler checks service health
@@ -165,16 +147,29 @@ func (s *Service) HealthHandler(c *gin.Context) {
 		"services":  gin.H{},
 	}
 
-	// Check LLM client health
-	if err := s.llmClient.Health(c.Request.Context()); err != nil {
-		log.Warn().Err(err).Msg("LLM client health check failed")
-		health["services"].(gin.H)["llm"] = gin.H{
-			"status": "unhealthy",
-			"error":  err.Error(),
+	// Check AI service health
+	healthResults := s.aiService.HealthCheck(c.Request.Context())
+	if len(healthResults) > 0 {
+		// Check if any providers are unhealthy
+		hasUnhealthy := false
+		for provider, err := range healthResults {
+			if err != nil {
+				log.Warn().Err(err).Str("provider", provider).Msg("AI provider health check failed")
+				hasUnhealthy = true
+			}
 		}
-		health["status"] = "degraded"
+
+		if hasUnhealthy {
+			health["services"].(gin.H)["ai"] = gin.H{
+				"status":    "degraded",
+				"providers": healthResults,
+			}
+			health["status"] = "degraded"
+		} else {
+			health["services"].(gin.H)["ai"] = gin.H{"status": "healthy"}
+		}
 	} else {
-		health["services"].(gin.H)["llm"] = gin.H{"status": "healthy"}
+		health["services"].(gin.H)["ai"] = gin.H{"status": "healthy"}
 	}
 
 	// Check Redis health
@@ -197,41 +192,6 @@ func (s *Service) HealthHandler(c *gin.Context) {
 	}
 
 	c.JSON(statusCode, health)
-}
-
-// streamResponse handles streaming responses to client
-func (s *Service) streamResponse(c *gin.Context, respChan <-chan *llm.GenerationResponse, userID, projectID string) {
-	ctx := c.Request.Context()
-	flusher, ok := c.Writer.(http.Flusher)
-	if !ok {
-		log.Error().Msg("Streaming not supported")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Streaming not supported"})
-		return
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			log.Info().Msg("Client disconnected")
-			return
-		case resp, ok := <-respChan:
-			if !ok {
-				// Channel closed, send final event
-				s.writeSSEEvent(c, "done", gin.H{"message": "Generation complete"}, "")
-				flusher.Flush()
-				return
-			}
-
-			// Send response
-			s.writeSSEEvent(c, "data", resp, resp.ID)
-			flusher.Flush()
-
-			// Publish to Redis if configured
-			if userID != "" || projectID != "" {
-				s.publishToRedis(resp, userID, projectID)
-			}
-		}
-	}
 }
 
 // writeSSEEvent writes a Server-Sent Event
@@ -264,22 +224,30 @@ func (s *Service) writeSSEError(c *gin.Context, errorCode, message string) {
 
 // HealthCheckHandler handles health checks for the generation service
 func (s *Service) HealthCheckHandler(c *gin.Context) {
-	// Check LLM client health
-	llmHealthy := s.llmClient.Health(c.Request.Context()) == nil
+	// Check AI service health
+	aiHealthResults := s.aiService.HealthCheck(c.Request.Context())
+	aiHealthy := len(aiHealthResults) == 0 || func() bool {
+		for _, err := range aiHealthResults {
+			if err != nil {
+				return false
+			}
+		}
+		return true
+	}()
 
 	// Check Redis client health
 	redisHealthy := s.redisClient.Ping(c.Request.Context()) == nil
 
-	if llmHealthy && redisHealthy {
+	if aiHealthy && redisHealthy {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
-			"llm":    "healthy",
+			"ai":     "healthy",
 			"redis":  "healthy",
 		})
 	} else {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "error",
-			"llm":    map[string]interface{}{"healthy": llmHealthy},
+			"ai":     map[string]interface{}{"healthy": aiHealthy, "details": aiHealthResults},
 			"redis":  map[string]interface{}{"healthy": redisHealthy},
 		})
 	}

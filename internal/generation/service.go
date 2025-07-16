@@ -1,13 +1,13 @@
 package generation
 
 import (
-	"github.com/EliasRanz/ai-code-gen/internal/llm"
+	"github.com/EliasRanz/ai-code-gen/internal/ai"
 )
 
 // Config holds configuration for the generation service
 type Config struct {
-	LLMConfig   *llm.VLLMConfig `json:"llm"`
-	RedisConfig *RedisConfig    `json:"redis"`
+	AIConfig    *ai.Config   `json:"ai"`
+	RedisConfig *RedisConfig `json:"redis"`
 }
 
 // RedisConfig holds Redis configuration for pub/sub
@@ -18,16 +18,16 @@ type RedisConfig struct {
 	DB       int    `json:"db"`
 }
 
-// Service provides AI generation functionality
+// Service provides AI generation functionality via AI service
 type Service struct {
-	llmClient   llm.LLMClient
+	aiService   *ai.AIService
 	redisClient RedisClient
 }
 
-// NewService creates a new generation service
-func NewService(llmClient llm.LLMClient, redisClient RedisClient) *Service {
+// NewService creates a new generation service using AI service
+func NewService(aiService *ai.AIService, redisClient RedisClient) *Service {
 	return &Service{
-		llmClient:   llmClient,
+		aiService:   aiService,
 		redisClient: redisClient,
 	}
 }
@@ -43,9 +43,9 @@ func (s *Service) Close() error {
 		}
 	}
 
-	// Close LLM client connection
-	if s.llmClient != nil {
-		if closeErr := s.llmClient.Close(); closeErr != nil {
+	// Close AI service
+	if s.aiService != nil {
+		if closeErr := s.aiService.Close(); closeErr != nil {
 			err = closeErr
 		}
 	}

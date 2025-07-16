@@ -1,12 +1,15 @@
 package main
 
 import (
+	"time"
+	
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
+	"github.com/EliasRanz/ai-code-gen/internal/ai"
+	"github.com/EliasRanz/ai-code-gen/internal/cache"
 	"github.com/EliasRanz/ai-code-gen/internal/config"
 	"github.com/EliasRanz/ai-code-gen/internal/generation"
-	"github.com/EliasRanz/ai-code-gen/internal/llm"
 	"github.com/EliasRanz/ai-code-gen/internal/service"
 )
 
@@ -35,12 +38,6 @@ func main() {
 
 	// Initialize generation service (auth-agnostic - trusts API Gateway)
 	genConfig := &generation.Config{
-		LLMConfig: &llm.VLLMConfig{
-			BaseURL:    cfg.AI.LLM.BaseURL,
-			APIKey:     cfg.AI.LLM.APIKey,
-			Timeout:    cfg.AI.LLM.Timeout,
-			MaxRetries: cfg.AI.LLM.MaxRetries,
-		},
 		RedisConfig: &generation.RedisConfig{
 			Host:     cfg.Redis.Host,
 			Port:     cfg.Redis.Port,
@@ -48,11 +45,36 @@ func main() {
 			DB:       cfg.Redis.DB,
 		},
 	}
+	// Initialize AI service components with simple configuration
+	rateLimiter := ai.NewRateLimiter(10, 5) // 10 requests per second, burst of 5
+	quotaManager := ai.NewQuotaManager()
+	
+	// Create a basic cache provider for testing
+	cacheConfig := cache.CacheConfig{
+		Host:                   "localhost",
+		Port:                   6379,
+		DefaultTTL:             300 * time.Second, // 5 minutes
+		MaxConnections:         10,
+		MaxIdleConnections:     5,
+		ConnectionTimeout:      30 * time.Second,
+		FailureThreshold:       5,
+		RequestVolumeThreshold: 10,
+		RecoveryTimeout:        60 * time.Second,
+	}
+	cacheProvider, err := cache.NewMemoryProvider(cacheConfig)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create cache provider")
+	}
+	
+	aiCacheConfig := ai.DefaultCacheConfig()
+	cacheManager := ai.NewCacheManager(cacheProvider, aiCacheConfig)
 
-	// Initialize LLM client and Redis client
-	llmClient := llm.NewVLLMClient(genConfig.LLMConfig)
+	// Create AI service
+	aiService := ai.NewAIService(rateLimiter, quotaManager, cacheManager)
+
+	// Initialize Redis client and generation service
 	redisClient := generation.NewRedisClient(genConfig.RedisConfig)
-	genService := generation.NewService(llmClient, redisClient)
+	genService := generation.NewService(aiService, redisClient)
 
 	// Setup HTTP router
 	router := setupGenerationRouter(cfg, genService)

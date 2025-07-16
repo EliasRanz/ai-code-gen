@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
-	"github.com/EliasRanz/ai-code-gen/internal/llm"
+	"github.com/EliasRanz/ai-code-gen/internal/ai/llm"
 )
 
 // RedisClient defines the interface for Redis operations
