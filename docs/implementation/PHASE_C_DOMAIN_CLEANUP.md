@@ -105,6 +105,7 @@ type Generation interface {
 - **Testing**: Easy mock entity implementations for comprehensive testing
 
 ### Test Requirements:
+- [ ] **Organization of tests**: All tests must be appropriately packaged in the `test` directory at the root of the workspace.
 - [ ] **Entity tests**: `internal/ai/entities_test.go`, `internal/utilities/types_test.go`
 - [ ] **95%+ coverage**: entity creation, validation, business rules, type conversions
 - [ ] **Integration tests**: Entity behavior and validation
@@ -382,6 +383,7 @@ func (f *MonitoringDecoratorFactory) CreateCacheDecorator(cache CacheProvider) C
 - **Separation of Concerns**: Keep monitoring logic separate from business logic
 
 ### Test Requirements:
+- [ ] **Organization of tests**: All tests must be appropriately packaged in the `test` directory at the root of the workspace.
 - [ ] **Config tests**: `internal/config/config_test.go`
 - [ ] **Decorator tests**: `monitoring_decorator_test.go`
 - [ ] **85%+ coverage**: shared config behavior, environment handling

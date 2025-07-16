@@ -82,6 +82,7 @@ type AIHandler interface {
 - **Future Extensibility**: Add new API paradigms without changing service logic
 
 ### Test Requirements:
+- [ ] **Organization of tests**: All tests must be appropriately packaged in the `test` directory at the root of the workspace.
 - [ ] **Handler tests**: Move to service packages (`http_handler_test.go`)
 - [ ] **90%+ coverage**: HTTP endpoints, request validation, response formatting, error handling
 - [ ] **Integration tests**: Test server with real requests
@@ -276,6 +277,7 @@ func (g *ObservableGateway) ProcessRequest(ctx Context, request *HTTPRequest) (*
 - **Testable**: Mock observers for testing gateway behavior without side effects
 
 ### Test Requirements:
+- [ ] **Organization of tests**: All tests must be appropriately packaged in the `test` directory at the root of the workspace.
 - [ ] **Gateway tests**: `router_test.go`, `auth_proxy_test.go`, `logging_test.go`, etc.
 - [ ] **Observer tests**: `gateway_observer_test.go`, `metrics_observer_test.go`
 - [ ] **90%+ coverage**: routing, proxy forwarding, auth middleware, rate limiting
@@ -384,6 +386,7 @@ type GRPCInterceptor interface {
 - **Future Extensibility**: Add new RPC protocols without changing service logic
 
 ### Test Requirements:
+- [ ] **Organization of tests**: All tests must be appropriately packaged in the `test` directory at the root of the workspace.
 - [ ] **gRPC tests**: `grpc_server_test.go` in service packages
 - [ ] **90%+ coverage**: gRPC endpoints, protobuf validation, error status codes
 - [ ] **Integration tests**: Test client connections

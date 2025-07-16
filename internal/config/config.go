@@ -58,11 +58,26 @@ type DatabaseConfig struct {
 
 // RedisConfig holds Redis configuration
 type RedisConfig struct {
-	Host        string        `json:"host"`
-	Port        int           `json:"port"`
-	Password    string        `json:"password"`
-	DB          int           `json:"db"`
-	AuthCacheTTL string       `json:"auth_cache_ttl"` // TTL for auth cache (e.g., "5m")
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Password string `json:"password"`
+	DB       int    `json:"db"`
+
+	// Connection pooling
+	MaxConnections     int           `json:"max_connections"`
+	MaxIdleConnections int           `json:"max_idle_connections"`
+	ConnectionTimeout  time.Duration `json:"connection_timeout"`
+	IdleTimeout        time.Duration `json:"idle_timeout"`
+
+	// Circuit breaker settings
+	FailureThreshold       int           `json:"failure_threshold"`
+	RequestVolumeThreshold int           `json:"request_volume_threshold"`
+	RecoveryTimeout        time.Duration `json:"recovery_timeout"`
+
+	// Service-specific TTL settings
+	AuthCacheTTL string `json:"auth_cache_ttl"` // TTL for auth cache (e.g., "5m")
+	UserCacheTTL string `json:"user_cache_ttl"` // TTL for user cache (e.g., "10m")
+	AICacheTTL   string `json:"ai_cache_ttl"`   // TTL for AI cache (e.g., "30m")
 }
 
 // AuthConfig holds authentication configuration
@@ -140,10 +155,10 @@ func Load() (*Config, error) {
 			ConnMaxIdleTime: getEnv("DATABASE_CONN_MAX_IDLE_TIME", "1m"),
 		},
 		Redis: RedisConfig{
-			Host:        getEnv("REDIS_HOST", "localhost"),
-			Port:        getEnvAsInt("REDIS_PORT", 6379),
-			Password:    getEnv("REDIS_PASSWORD", ""),
-			DB:          getEnvAsInt("REDIS_DB", 0),
+			Host:         getEnv("REDIS_HOST", "localhost"),
+			Port:         getEnvAsInt("REDIS_PORT", 6379),
+			Password:     getEnv("REDIS_PASSWORD", ""),
+			DB:           getEnvAsInt("REDIS_DB", 0),
 			AuthCacheTTL: getEnv("REDIS_AUTH_CACHE_TTL", "5m"),
 		},
 		Auth: AuthConfig{
