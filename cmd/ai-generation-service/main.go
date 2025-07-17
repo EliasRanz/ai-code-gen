@@ -9,7 +9,6 @@ import (
 	"github.com/EliasRanz/ai-code-gen/internal/ai"
 	"github.com/EliasRanz/ai-code-gen/internal/cache"
 	"github.com/EliasRanz/ai-code-gen/internal/config"
-	"github.com/EliasRanz/ai-code-gen/internal/generation"
 	"github.com/EliasRanz/ai-code-gen/internal/service"
 )
 
@@ -37,13 +36,11 @@ func main() {
 	}
 
 	// Initialize generation service (auth-agnostic - trusts API Gateway)
-	genConfig := &generation.Config{
-		RedisConfig: &generation.RedisConfig{
-			Host:     cfg.Redis.Host,
-			Port:     cfg.Redis.Port,
-			Password: cfg.Redis.Password,
-			DB:       cfg.Redis.DB,
-		},
+	redisConfig := &ai.RedisConfig{
+		Host:     cfg.Redis.Host,
+		Port:     cfg.Redis.Port,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
 	}
 	// Initialize AI service components with simple configuration
 	rateLimiter := ai.NewRateLimiter(10, 5) // 10 requests per second, burst of 5
@@ -73,8 +70,8 @@ func main() {
 	aiService := ai.NewAIService(rateLimiter, quotaManager, cacheManager)
 
 	// Initialize Redis client and generation service
-	redisClient := generation.NewRedisClient(genConfig.RedisConfig)
-	genService := generation.NewService(aiService, redisClient)
+	redisClient := ai.NewRedisClient(redisConfig)
+	genService := ai.NewGenerationService(aiService, redisClient)
 
 	// Setup HTTP router
 	router := setupGenerationRouter(cfg, genService)
@@ -89,14 +86,14 @@ func main() {
 }
 
 // setupGenerationRouter configures all generation routes
-func setupGenerationRouter(cfg *config.Config, genService *generation.Service) *gin.Engine {
+func setupGenerationRouter(cfg *config.Config, genService *ai.GenerationService) *gin.Engine {
 	router := gin.Default()
 
 	// Setup middleware
 	router.Use(gin.Recovery())
 
 	// Setup routes (auth-agnostic - trusts API Gateway)
-	generation.RegisterRoutes(router, genService)
+	ai.RegisterGenerationRoutes(router, genService)
 
 	return router
 }

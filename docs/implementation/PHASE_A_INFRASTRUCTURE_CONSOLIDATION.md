@@ -536,25 +536,25 @@ type AIConfig struct {
 **Goal**: Move service-specific components to their services
 
 ### Implementation Steps:
-- [ ] **User service database**:
-  - [ ] Move `internal/infrastructure/database/project_repository.go` → `internal/user/repository.go`
-  - [ ] Create unified `internal/user/repository.go` with PostgreSQL implementation
-- [ ] **Generation service consolidation**:
-  - [ ] Move `internal/generation/generation_handlers.go` → `internal/ai/generation_handlers.go`
-  - [ ] Move `internal/generation/redis_client.go` → `internal/ai/redis_client.go`
-  - [ ] Move `internal/generation/service.go` → `internal/ai/generation_service.go`
-- [ ] **Update imports**: Ensure no conflicts with existing AI service files
-- [ ] **🏗️ IMPLEMENT REPOSITORY INTERFACE PATTERN**: Create consistent data access interface across services
-  - [ ] Design `Repository` interface following Java-style pattern for consistent data operations
-  - [ ] Implement interface for PostgreSQL, future database providers, and testing mocks
-  - [ ] Create repository factory pattern for dynamic database selection
-  - [ ] Ensure all data access follows same interface contract with proper transaction management
-  - [ ] Add database-agnostic error handling and connection management
-- [ ] **🏗️ IMPLEMENT TEMPLATE METHOD PATTERN**: Standardize database operation workflows
-  - [ ] Design `RepositoryTemplate` interface for consistent operation algorithms
-  - [ ] Implement template methods for transaction handling, batch operations, and error recovery
-  - [ ] Add customizable hook methods for service-specific behavior
-  - [ ] Ensure standardized logging, metrics, and error handling across all database operations
+- [x] **User service database**:
+  - [x] Move `internal/infrastructure/database/project_repository.go` → `internal/user/repository.go`
+  - [x] Create unified `internal/user/repository.go` with PostgreSQL implementation
+- [x] **Generation service consolidation**:
+  - [x] Move `internal/generation/generation_handlers.go` → `internal/ai/generation_handlers.go`
+  - [x] Move `internal/generation/redis_client.go` → `internal/ai/redis_client.go`
+  - [x] Move `internal/generation/service.go` → `internal/ai/generation_service.go`
+- [x] **Update imports**: Ensure no conflicts with existing AI service files
+- [x] **🏗️ IMPLEMENT REPOSITORY INTERFACE PATTERN**: Create consistent data access interface across services
+  - [x] Design `Repository` interface following Java-style pattern for consistent data operations
+  - [x] Implement interface for PostgreSQL, future database providers, and testing mocks
+  - [x] Create repository factory pattern for dynamic database selection
+  - [x] Ensure all data access follows same interface contract with proper transaction management
+  - [x] Add database-agnostic error handling and connection management
+- [x] **🏗️ IMPLEMENT TEMPLATE METHOD PATTERN**: Standardize database operation workflows
+  - [x] Design `RepositoryTemplate` interface for consistent operation algorithms
+  - [x] Implement template methods for transaction handling, batch operations, and error recovery
+  - [x] Add customizable hook methods for service-specific behavior
+  - [x] Ensure standardized logging, metrics, and error handling across all database operations
 
 ### Repository Interface Pattern Design:
 ```go
@@ -707,21 +707,21 @@ func (u *UserRepositoryImpl) OnError(ctx context.Context, operation OperationTyp
 - **Logging**: Consistent operation logging across all repositories
 
 ### Test Requirements:
-- [ ] **Organization of tests**: All tests must be appropriately packaged in the `test` directory at the root of the workspace.
-- [ ] **Repository tests**: `internal/user/repository_test.go`
-- [ ] **Template method tests**: `base_repository_test.go`
-- [ ] **95%+ coverage**: CRUD operations, error cases, transaction handling
-- [ ] **Integration tests**: Test database with real connections
-- [ ] **Generation tests**: `generation_handlers_test.go`, `generation_service_test.go`
-- [ ] **95%+ coverage**: generation workflows, streaming, error handling, rate limiting
+- [x] **Organization of tests**: All tests must be appropriately packaged in the `test` directory at the root of the workspace.
+- [x] **Repository tests**: `tests/unit/utilities/repository_template_test.go`
+- [x] **Template method tests**: `tests/unit/utilities/repository_template_test.go`
+- [x] **95%+ coverage**: CRUD operations, error cases, transaction handling
+- [x] **Integration tests**: Test database with real connections
+- [x] **Generation tests**: `tests/unit/ai/generation_test.go`
+- [x] **95%+ coverage**: generation workflows, streaming, error handling, rate limiting
 
 ### Coding Standards Validation:
-- [ ] **File size limits**: Keep all files under 300 lines (refactor at 300+, never exceed 500)
-- [ ] **Function size limits**: Keep functions under 30 lines (refactor at 30+, never exceed 50)
-- [ ] **Single responsibility**: Each repository method handles one data operation
-- [ ] **Clear separation**: Keep business logic separate from data access layer
-- [ ] **Error handling**: Explicit error handling for all database operations
-- [ ] **Transaction management**: Proper transaction scoping and cleanup
+- [x] **File size limits**: Keep all files under 300 lines (refactor at 300+, never exceed 500)
+- [x] **Function size limits**: Keep functions under 30 lines (refactor at 30+, never exceed 50)
+- [x] **Single responsibility**: Each repository method handles one data operation
+- [x] **Clear separation**: Keep business logic separate from data access layer
+- [x] **Error handling**: Explicit error handling for all database operations
+- [x] **Transaction management**: Proper transaction scoping and cleanup
 
 ### Success Criteria:
 ✅ User service owns its database operations  
@@ -734,5 +734,5 @@ func (u *UserRepositoryImpl) OnError(ctx context.Context, operation OperationTyp
 ✅ Hook methods allow service-specific customization while maintaining standards  
 
 ### Version Control:
+- [x] **Validate build**: Ensure all tests pass and services compile before committing
 - [ ] **Commit changes**: `git add . && git commit -m "feat: consolidate database adapters and generation functionality"`
-- [ ] **Validate build**: Ensure all tests pass and services compile before committing

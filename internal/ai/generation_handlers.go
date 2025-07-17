@@ -1,4 +1,4 @@
-package generation
+package ai
 
 import (
 	"encoding/json"
@@ -12,22 +12,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func RegisterRoutes(router *gin.Engine, service *Service) {
+// RegisterGenerationRoutes registers AI generation routes
+func RegisterGenerationRoutes(router *gin.Engine, service *GenerationService) {
 	// Generation group - auth is handled by API Gateway
 	generationGroup := router.Group("/api/v1/generate")
 	{
 		generationGroup.POST("/stream", service.StreamGenerationHandler)
 		generationGroup.POST("/request-response", service.RequestResponseHandler)
+		generationGroup.GET("/models", service.GetModelsHandler)
 	}
 
 	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
+	router.GET("/health", service.HealthHandler)
 }
 
 // StreamGenerationHandler handles streaming AI generation requests
-func (s *Service) StreamGenerationHandler(c *gin.Context) {
+func (s *GenerationService) StreamGenerationHandler(c *gin.Context) {
 	// Extract user context set by API Gateway
 	userID, _, _, authenticated := auth.GetUserContextFromMiddleware(c)
 	if !authenticated {
@@ -36,16 +36,7 @@ func (s *Service) StreamGenerationHandler(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Model       string                 `json:"model" binding:"required"`
-		Prompt      string                 `json:"prompt" binding:"required"`
-		MaxTokens   int                    `json:"max_tokens"`
-		Temperature float64                `json:"temperature"`
-		UserID      string                 `json:"user_id"`
-		ProjectID   string                 `json:"project_id"`
-		Metadata    map[string]interface{} `json:"metadata"`
-	}
-
+	var req GenerationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error().Err(err).Msg("Invalid request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -53,15 +44,26 @@ func (s *Service) StreamGenerationHandler(c *gin.Context) {
 	}
 
 	// Set user ID from context
-	req.UserID = string(userID)
+	req.UserID = userID
+
+	if err := req.Validate(); err != nil {
+		log.Error().Err(err).Msg("Request validation failed")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	// Create a stream for the user
 	streamID := fmt.Sprintf("user-%s-stream-%d", string(userID), time.Now().UnixNano())
 
 	log.Info().
 		Str("model", req.Model).
-		Str("user_id", req.UserID).
-		Str("project_id", req.ProjectID).
+		Str("user_id", string(req.UserID)).
+		Str("project_id", func() string {
+			if req.ProjectID != nil {
+				return string(*req.ProjectID)
+			}
+			return ""
+		}()).
 		Int("prompt_length", len(req.Prompt)).
 		Str("stream_id", streamID).
 		Msg("Streaming generation request")
@@ -80,13 +82,21 @@ func (s *Service) StreamGenerationHandler(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 	c.Header("Access-Control-Allow-Origin", "*")
 
-	// Stream the response (simplified - single response)
-	c.Writer.Write([]byte(fmt.Sprintf("data: %s\n\n", response.Content)))
+	// Stream the response
+	s.writeSSEEvent(c, "generation", response, streamID)
 	c.Writer.Flush()
+
+	// Publish to Redis for real-time updates
+	s.publishToRedis(response, string(req.UserID), func() string {
+		if req.ProjectID != nil {
+			return string(*req.ProjectID)
+		}
+		return ""
+	}())
 }
 
 // RequestResponseHandler handles non-streaming AI generation requests
-func (s *Service) RequestResponseHandler(c *gin.Context) {
+func (s *GenerationService) RequestResponseHandler(c *gin.Context) {
 	// Extract user context set by API Gateway
 	userID, _, _, authenticated := auth.GetUserContextFromMiddleware(c)
 	if !authenticated {
@@ -95,16 +105,7 @@ func (s *Service) RequestResponseHandler(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Model       string                 `json:"model" binding:"required"`
-		Prompt      string                 `json:"prompt" binding:"required"`
-		MaxTokens   int                    `json:"max_tokens"`
-		Temperature float64                `json:"temperature"`
-		UserID      string                 `json:"user_id"`
-		ProjectID   string                 `json:"project_id"`
-		Metadata    map[string]interface{} `json:"metadata"`
-	}
-
+	var req GenerationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Error().Err(err).Msg("Invalid request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -112,10 +113,16 @@ func (s *Service) RequestResponseHandler(c *gin.Context) {
 	}
 
 	// Set user ID from context
-	req.UserID = string(userID)
+	req.UserID = userID
+
+	if err := req.Validate(); err != nil {
+		log.Error().Err(err).Msg("Request validation failed")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	// Generate response using AI service
-	response, err := s.aiService.GenerateWithBuilder(c.Request.Context(), req.UserID, req.Prompt)
+	response, err := s.aiService.GenerateWithBuilder(c.Request.Context(), string(req.UserID), req.Prompt)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate response")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Generation failed"})
@@ -123,24 +130,35 @@ func (s *Service) RequestResponseHandler(c *gin.Context) {
 	}
 
 	// Convert to expected response format
-	resp := map[string]interface{}{
-		"content":     response.Content,
-		"tokens_used": response.TokensUsed,
-		"provider":    response.Provider,
-		"model":       response.Model,
+	resp := GenerationResponse{
+		Content:    response.Content,
+		TokensUsed: response.TokensUsed,
+		Provider:   response.Provider,
+		Model:      response.Model,
+		UserID:     req.UserID,
+		ProjectID:  req.ProjectID,
+		Timestamp:  time.Now().UTC(),
 	}
+
+	// Publish to Redis for real-time updates
+	s.publishToRedis(response, string(req.UserID), func() string {
+		if req.ProjectID != nil {
+			return string(*req.ProjectID)
+		}
+		return ""
+	}())
 
 	c.JSON(http.StatusOK, resp)
 }
 
 // GetModelsHandler returns available models
-func (s *Service) GetModelsHandler(c *gin.Context) {
+func (s *GenerationService) GetModelsHandler(c *gin.Context) {
 	providers := s.aiService.GetAvailableProviders()
 	c.JSON(http.StatusOK, gin.H{"providers": providers})
 }
 
 // HealthHandler checks service health
-func (s *Service) HealthHandler(c *gin.Context) {
+func (s *GenerationService) HealthHandler(c *gin.Context) {
 	health := gin.H{
 		"status":    "ok",
 		"timestamp": time.Now().UTC(),
@@ -195,7 +213,7 @@ func (s *Service) HealthHandler(c *gin.Context) {
 }
 
 // writeSSEEvent writes a Server-Sent Event
-func (s *Service) writeSSEEvent(c *gin.Context, event string, data interface{}, id string) {
+func (s *GenerationService) writeSSEEvent(c *gin.Context, event string, data interface{}, id string) {
 	if id != "" {
 		fmt.Fprintf(c.Writer, "id: %s\n", id)
 	}
@@ -217,38 +235,7 @@ func (s *Service) writeSSEEvent(c *gin.Context, event string, data interface{}, 
 }
 
 // writeSSEError writes an error event in SSE format
-func (s *Service) writeSSEError(c *gin.Context, errorCode, message string) {
+func (s *GenerationService) writeSSEError(c *gin.Context, errorCode, message string) {
 	fmt.Fprintf(c.Writer, "event: error\n")
 	fmt.Fprintf(c.Writer, "data: {\"error_code\":\"%s\",\"message\":\"%s\"}\n\n", errorCode, message)
-}
-
-// HealthCheckHandler handles health checks for the generation service
-func (s *Service) HealthCheckHandler(c *gin.Context) {
-	// Check AI service health
-	aiHealthResults := s.aiService.HealthCheck(c.Request.Context())
-	aiHealthy := len(aiHealthResults) == 0 || func() bool {
-		for _, err := range aiHealthResults {
-			if err != nil {
-				return false
-			}
-		}
-		return true
-	}()
-
-	// Check Redis client health
-	redisHealthy := s.redisClient.Ping(c.Request.Context()) == nil
-
-	if aiHealthy && redisHealthy {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
-			"ai":     "healthy",
-			"redis":  "healthy",
-		})
-	} else {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "error",
-			"ai":     map[string]interface{}{"healthy": aiHealthy, "details": aiHealthResults},
-			"redis":  map[string]interface{}{"healthy": redisHealthy},
-		})
-	}
 }

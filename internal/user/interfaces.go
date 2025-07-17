@@ -4,6 +4,11 @@ import (
 	pb "github.com/EliasRanz/ai-code-gen/api/proto/user"
 )
 
+// RepositoryFactory creates repositories following the factory pattern
+type RepositoryFactory interface {
+	CreateProjectRepository(db interface{}) (ProjectRepository, error)
+}
+
 // UserGRPCClient defines the interface for gRPC client methods used by handlers
 // This allows for mocking in tests
 //
