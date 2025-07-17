@@ -110,6 +110,11 @@ type Generation interface {
 - [ ] **95%+ coverage**: entity creation, validation, business rules, type conversions
 - [ ] **Integration tests**: Entity behavior and validation
 - [ ] **Serialization tests**: Entity marshaling/unmarshaling
+- [ ] **🏗️ IMPLEMENT MOCK INTEGRATION PATTERN**: Follow ADR-024 mock integration strategy
+  - [ ] Generate mocks for entity interfaces using `scripts/generate-mocks.sh`
+  - [ ] Apply `mocks.NewMockDomainEntity(ctrl)` pattern for entity testing
+  - [ ] Use generated mocks for factory and validator testing with clean dependency injection
+  - [ ] Reference mock integration patterns from user service tests in `tests/unit/user/`
 
 ### Coding Standards Validation:
 - [ ] **File size limits**: Keep all entity files under 300 lines (refactor at 300+, never exceed 500)
@@ -388,6 +393,11 @@ func (f *MonitoringDecoratorFactory) CreateCacheDecorator(cache CacheProvider) C
 - [ ] **85%+ coverage**: shared config behavior, environment handling
 - [ ] **Observability tests**: Cross-service functionality
 - [ ] **Database tests**: Connection management, migration utilities
+- [ ] **🏗️ IMPLEMENT MOCK INTEGRATION PATTERN**: Follow ADR-024 mock integration strategy
+  - [ ] Generate mocks for config/database interfaces using `scripts/generate-mocks.sh`
+  - [ ] Apply `mocks.NewMockConfigProvider(ctrl)` pattern for configuration testing
+  - [ ] Use generated mocks for decorator and observability component testing
+  - [ ] Reference existing config mock patterns from cache service tests
 - [ ] **Monitoring integration tests**: Verify decorator behavior with real components
 
 ### Coding Standards Validation:

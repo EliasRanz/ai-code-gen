@@ -130,6 +130,11 @@ function isTokenExpired(token: string): boolean {
 - [ ] **Token refresh testing**: Direct auth service integration
 - [ ] **Session management testing**: Auth utilities validation
 - [ ] **Error handling testing**: Failed auth scenarios
+- [ ] **🏗️ IMPLEMENT MOCK INTEGRATION PATTERN**: Follow ADR-024 mock integration strategy
+  - [ ] Generate mocks for frontend service interfaces using `scripts/generate-mocks.sh`
+  - [ ] Apply mock patterns for auth service client testing with TypeScript/JavaScript
+  - [ ] Use generated mocks for API client and auth flow testing
+  - [ ] Reference backend mock integration patterns adapted for frontend testing
 
 ### Coding Standards Validation:
 - [ ] **File size limits**: Keep all frontend auth files under 300 lines (refactor at 300+, never exceed 500)

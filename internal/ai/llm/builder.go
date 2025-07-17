@@ -198,7 +198,15 @@ func (b *LLMRequestBuilder) Build() (*GenerationRequest, error) {
 		return nil, err
 	}
 
-	// Apply free tier defaults
+	// Apply defaults and metadata
+	b.applyDefaults()
+	b.addMetadata()
+
+	return b.request, nil
+}
+
+// applyDefaults applies free tier defaults to request
+func (b *LLMRequestBuilder) applyDefaults() {
 	if b.request.MaxTokens == 0 {
 		b.request.MaxTokens = b.config.DefaultMaxTokens
 	}
@@ -211,7 +219,10 @@ func (b *LLMRequestBuilder) Build() (*GenerationRequest, error) {
 	if b.request.Provider == "" {
 		b.request.Provider = "openai" // FREE TIER default
 	}
+}
 
+// addMetadata adds required metadata to request
+func (b *LLMRequestBuilder) addMetadata() {
 	// Add request ID if not present
 	if _, exists := b.request.Metadata["request_id"]; !exists {
 		b.request.Metadata["request_id"] = uuid.New().String()
@@ -221,6 +232,4 @@ func (b *LLMRequestBuilder) Build() (*GenerationRequest, error) {
 	if b.config.FreeTierOnly {
 		b.request.Metadata["free_tier_only"] = "true"
 	}
-
-	return b.request, nil
 }

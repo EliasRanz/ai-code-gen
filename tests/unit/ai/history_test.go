@@ -7,17 +7,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 
 	"github.com/EliasRanz/ai-code-gen/internal/ai"
+	"github.com/EliasRanz/ai-code-gen/tests/mocks"
 )
 
-type mockLLM struct{}
-func (m *mockLLM) Generate(prompt string) (string, error) { return "<div>" + prompt + "</div>", nil }
-func (m *mockLLM) StreamGenerate(prompt string, ch chan string) error { return nil }
-
-func setupHistoryTest() (*ai.Handler, *ai.Service, *gin.Engine) {
+func setupHistoryTest(ctrl *gomock.Controller) (*ai.Handler, *ai.Service, *gin.Engine) {
 	gin.SetMode(gin.TestMode)
-	svc := ai.NewService(&mockLLM{})
+
+	mockLLM := mocks.NewMockLLMClient(ctrl)
+	mockLLM.EXPECT().Generate(gomock.Any()).DoAndReturn(func(prompt string) (string, error) {
+		return "<div>" + prompt + "</div>", nil
+	}).AnyTimes()
+
+	svc := ai.NewService(mockLLM)
 	h := ai.NewHandler(svc)
 	r := gin.New()
 	group := r.Group("")
@@ -26,7 +30,10 @@ func setupHistoryTest() (*ai.Handler, *ai.Service, *gin.Engine) {
 }
 
 func TestHistoryEndpoint(t *testing.T) {
-	_, svc, r := setupHistoryTest()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	_, svc, r := setupHistoryTest(ctrl)
 	userID := "user1"
 	// Simulate generations
 	svc.GenerateCode("prompt1", userID)
@@ -40,7 +47,10 @@ func TestHistoryEndpoint(t *testing.T) {
 }
 
 func TestHistoryEndpointNoUser(t *testing.T) {
-	_, _, r := setupHistoryTest()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	_, _, r := setupHistoryTest(ctrl)
 	req, _ := http.NewRequest("GET", "/ai/history", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)

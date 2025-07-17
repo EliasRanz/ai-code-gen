@@ -1,6 +1,6 @@
 # Makefile for AI UI Generator
 
-.PHONY: help build test test-performance test-benchmark test-benchmark-quick test-benchmark-single test-load test-stress performance-report sla-demo clean up down logs dev prod install migrate check-standards refactor setup-tests
+.PHONY: help build test test-performance test-benchmark test-benchmark-quick test-benchmark-single test-load test-stress performance-report sla-demo clean up down logs dev prod install migrate check-standards refactor setup-tests generate-mocks
 
 # Default target
 help: ## Show this help message
@@ -20,6 +20,7 @@ install-tools: ## Install development tools
 	@echo "Installing development tools..."
 	@which golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
 	@which gosec > /dev/null || (echo "Installing gosec..." && go install github.com/securego/gosec/v2/cmd/gosec@latest)
+	@which mockgen > /dev/null || (echo "Installing mockgen..." && go install go.uber.org/mock/mockgen@latest)
 	@echo "✅ Development tools installed"
 
 build: ## Build all services
@@ -36,6 +37,32 @@ test: ## Run all tests
 	go test -v ./... -json | tparse
 	@echo "Running frontend tests..."
 	cd web && npm test
+
+test-unit: ## Run unit tests only
+	@echo "Running unit tests..."
+	go test -v ./tests/unit/...
+
+test-integration: ## Run integration tests with local environment
+	@echo "🔧 Running integration tests (local environment)..."
+	@echo "Ensure Redis and PostgreSQL are running: make dev"
+	INTEGRATION_TESTS=1 INTEGRATION_ENV=local go test -v ./tests/integration/... -timeout=5m
+
+test-integration-staging: ## Run integration tests against staging environment
+	@echo "🔧 Running integration tests (staging environment)..."
+	@echo "⚠️ Ensure staging credentials are set in environment"
+	INTEGRATION_TESTS=1 INTEGRATION_ENV=staging go test -v ./tests/integration/... -timeout=10m
+
+test-integration-production: ## Run integration tests against production environment
+	@echo "🔧 Running integration tests (production environment)..."
+	@echo "⚠️ WARNING: Running tests against production environment"
+	@read -p "Are you sure you want to run tests against production? (y/N): " confirm; \
+	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+		INTEGRATION_TESTS=1 INTEGRATION_ENV=production go test -v ./tests/integration/... -timeout=15m; \
+	else \
+		echo "Integration tests cancelled"; \
+	fi
+
+test-all: test-unit test-integration ## Run all tests (unit and integration)
 
 test-performance: ## Run comprehensive performance tests for Redis auth cache (30min max)
 	@echo "🚀 Running Redis Auth Cache Performance Tests..."
@@ -107,6 +134,12 @@ clean: ## Clean build artifacts
 generate-protos: ## Generate protobuf files (prevents nested directory issues)
 	@echo "Generating protobuf files..."
 	./scripts/generate-protos.sh
+
+# Mock generation
+generate-mocks: ## Generate mock files for interfaces using GoMock
+	@echo "Generating mock files..."
+	@which mockgen > /dev/null || (echo "Installing mockgen..." && go install go.uber.org/mock/mockgen@latest)
+	./scripts/generate-mocks.sh
 
 # Docker commands
 docker-build: ## Build Docker images

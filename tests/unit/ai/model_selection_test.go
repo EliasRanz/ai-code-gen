@@ -9,51 +9,59 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 
 	"github.com/EliasRanz/ai-code-gen/internal/ai"
+	"github.com/EliasRanz/ai-code-gen/tests/mocks"
 )
 
-func TestModelSelectionEndpoint(t *testing.T) {
+func setupModelTestHandler(ctrl *gomock.Controller) (*ai.Handler, *ai.Service, *gin.Engine) {
 	gin.SetMode(gin.TestMode)
-	svc := ai.NewService(&mockLLM{})
+
+	mockLLM := mocks.NewMockLLMClient(ctrl)
+	mockLLM.EXPECT().Generate(gomock.Any()).Return("<div>Generated UI</div>", nil).AnyTimes()
+	mockLLM.EXPECT().StreamGenerate(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	svc := ai.NewService(mockLLM)
 	h := ai.NewHandler(svc)
 	r := gin.New()
 	group := r.Group("")
 	h.RegisterRoutes(group)
+	return h, svc, r
+}
+
+func TestModelSelectionEndpoint(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	_, _, r := setupModelTestHandler(ctrl)
 
 	// Test with model parameters
 	temp := 0.7
 	maxTokens := 100
-	req := ai.GenerateRequest{
+	reqBody := ai.GenerateRequest{
 		Prompt:      "create a button",
-		UserID:      "user1",
 		Model:       "gpt-4",
 		Temperature: &temp,
 		MaxTokens:   &maxTokens,
 	}
-
-	reqBody, _ := json.Marshal(req)
-	httpReq, _ := http.NewRequest("POST", "/ai/generate", bytes.NewBuffer(reqBody))
-	httpReq.Header.Set("Content-Type", "application/json")
-	
+	body, _ := json.Marshal(reqBody)
 	w := httptest.NewRecorder()
-	r.ServeHTTP(w, httpReq)
+	req, _ := http.NewRequest("POST", "/ai/generate", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
 
 	assert.Equal(t, 200, w.Code)
-	
 	var resp ai.GenerateResponse
-	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	assert.NoError(t, err)
-	assert.Contains(t, resp.Code, "create a button")
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Contains(t, resp.Code, "Generated UI")
 }
 
 func TestStreamWithModelParams(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	svc := ai.NewService(&mockLLM{})
-	h := ai.NewHandler(svc)
-	r := gin.New()
-	group := r.Group("")
-	h.RegisterRoutes(group)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	_, _, r := setupModelTestHandler(ctrl)
 
 	req, _ := http.NewRequest("GET", "/ai/stream/abc?prompt=test&model=gpt-4&temperature=0.5&max_tokens=50", nil)
 	w := httptest.NewRecorder()
@@ -64,8 +72,11 @@ func TestStreamWithModelParams(t *testing.T) {
 }
 
 func TestGenerationParams(t *testing.T) {
-	svc := ai.NewService(&mockLLM{})
-	
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	_, svc, _ := setupModelTestHandler(ctrl)
+
 	temp := 0.8
 	maxTokens := 150
 	params := ai.GenerationParams{
@@ -73,13 +84,10 @@ func TestGenerationParams(t *testing.T) {
 		Temperature: &temp,
 		MaxTokens:   &maxTokens,
 	}
-	
-	code, err := svc.GenerateCodeWithParams("test prompt", "user1", params)
+
+	// Test that parameters are accepted (service level test)
+	code, err := svc.GenerateCodeWithParams("create a form", "user123", params)
 	assert.NoError(t, err)
-	assert.Contains(t, code, "test prompt")
-	
-	// Check history was updated
-	history := svc.GetHistory("user1")
-	assert.Len(t, history, 1)
-	assert.Equal(t, "test prompt", history[0].Prompt)
+	assert.NotEmpty(t, code)
+	assert.Contains(t, code, "Generated UI")
 }

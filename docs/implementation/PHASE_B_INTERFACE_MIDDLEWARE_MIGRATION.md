@@ -87,6 +87,11 @@ type AIHandler interface {
 - [ ] **90%+ coverage**: HTTP endpoints, request validation, response formatting, error handling
 - [ ] **Integration tests**: Test server with real requests
 - [ ] **Middleware tests**: Authentication flows
+- [ ] **🏗️ IMPLEMENT MOCK INTEGRATION PATTERN**: Follow ADR-024 mock integration strategy
+  - [ ] Use generated mocks from `tests/mocks/` instead of manual mocks
+  - [ ] Follow `gomock.Controller` pattern for test setup
+  - [ ] Apply progressive mock migration: manual mocks → generated mocks → pattern validation
+  - [ ] Reference ADR-024 for mock generation script usage and conflict resolution
 
 ### Coding Standards Validation:
 - [ ] **File size limits**: Keep all handler files under 300 lines (refactor at 300+, never exceed 500)
@@ -283,6 +288,11 @@ func (g *ObservableGateway) ProcessRequest(ctx Context, request *HTTPRequest) (*
 - [ ] **Integration tests**: Multiple service backends
 - [ ] **Failure scenarios**: Circuit breaker behavior
 - [ ] **Observer integration tests**: Event notification and handling
+- [ ] **🏗️ IMPLEMENT MOCK INTEGRATION PATTERN**: Follow ADR-024 mock integration strategy
+  - [ ] Generate mocks for gateway interfaces: `middleware.go`, `proxy.go`, `router.go`
+  - [ ] Use `mocks.NewMockMiddleware(ctrl)` pattern for middleware testing
+  - [ ] Apply `gomock.EXPECT()` chains for gateway request/response validation
+  - [ ] Reference mock integration examples from cache/ai service tests
 
 ### Coding Standards Validation:
 - [ ] **File size limits**: Keep all gateway files under 300 lines (refactor at 300+, never exceed 500)

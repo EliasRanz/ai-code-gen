@@ -77,17 +77,22 @@ The authentication system is centralized in the `internal/auth` package with com
 
 ## Testing & Quality
 - **Unit, integration, and E2E tests** for all layers
-- **Test coverage:** All business logic, adapters, and handlers
+- **Test coverage:** All business logic, adapters, and handlers  
+- **Mock Integration Strategy**: GoMock-based generated mocks replacing manual mocks (ADR-024)
+- **Interface Segregation Testing**: Comprehensive mock coverage for segregated interfaces (ADR-023)
 - **CI/CD:** Automated testing and deployment pipeline (planned)
 - **Test Organization:** Domain-based test structure following Go conventions (*_test.go pattern)
+- **Generated Mock Framework**: Automated mock generation with `scripts/generate-mocks.sh`
 
 ## Security & Observability
 - JWT secret management, password hashing (bcrypt)
 - Input validation, error handling, rate limiting
 - Structured logging (zerolog), metrics, tracing (OpenTelemetry)
 
-## Current Architecture Changes (2025-01-12)
+## Current Architecture Changes (2025-07-16)
 - **Domain Cleanup Completed**: Successfully moved from `internal/common` to `internal/utilities`, eliminated `internal/application` layer
+- **Interface Segregation Completed**: ADR-023 implementation with segregated cache, LLM, config, and auth interfaces
+- **Mock Integration Strategy Completed**: ADR-024 implementation with GoMock-based generated mocks across all services
 - **Infrastructure Abstraction Elimination**: ADR-017 in progress - migrating from over-abstracted `internal/infrastructure` and `internal/interfaces` to complete service ownership
 - **Auth Centralization**: Centralized auth server implementation (see ADR-012)
 - **Implementation Status**: See `CENTRALIZED_AUTH_PLAN.md` for auth progress, ADR-017 for infrastructure migration

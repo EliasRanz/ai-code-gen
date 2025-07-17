@@ -7,9 +7,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 	"golang.org/x/time/rate"
 
 	"github.com/EliasRanz/ai-code-gen/internal/ai"
+	"github.com/EliasRanz/ai-code-gen/tests/mocks"
 )
 
 func TestRateLimiter(t *testing.T) {
@@ -113,7 +115,13 @@ func TestQuotaMiddleware(t *testing.T) {
 
 func TestGetQuotaEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	svc := ai.NewService(&mockLLM{})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLLM := mocks.NewMockLLMClient(ctrl)
+	mockLLM.EXPECT().Generate(gomock.Any()).Return("<div>Generated UI</div>", nil).AnyTimes()
+
+	svc := ai.NewService(mockLLM)
 	h := ai.NewHandler(svc)
 	r := gin.New()
 	group := r.Group("")

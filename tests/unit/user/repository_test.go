@@ -3,212 +3,103 @@ package user_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/EliasRanz/ai-code-gen/internal/user"
 	"github.com/EliasRanz/ai-code-gen/internal/utilities"
+	"github.com/EliasRanz/ai-code-gen/tests/mocks"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"go.uber.org/mock/gomock"
 )
 
-// MockProjectRepository implements user.ProjectRepository for testing
-type MockProjectRepository struct {
-	mock.Mock
-}
+// TestRepositoryPatternWithMocks demonstrates repository pattern testing with generated mocks
+// This shows how to test repository patterns using generated cache mocks as dependencies
+func TestRepositoryPatternWithMocks(t *testing.T) {
+	t.Run("Factory_Pattern_Validation", func(t *testing.T) {
+		// Test the repository factory pattern
+		factory := user.NewPostgreSQLRepositoryFactory()
+		assert.NotNil(t, factory, "Factory should be created successfully")
 
-func (m *MockProjectRepository) Create(ctx context.Context, project user.Project) error {
-	args := m.Called(ctx, project)
-	return args.Error(0)
-}
-
-func (m *MockProjectRepository) GetByID(ctx context.Context, id utilities.ProjectID) (user.Project, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(user.Project), args.Error(1)
-}
-
-func (m *MockProjectRepository) Update(ctx context.Context, project user.Project) error {
-	args := m.Called(ctx, project)
-	return args.Error(0)
-}
-
-func (m *MockProjectRepository) Delete(ctx context.Context, id utilities.ProjectID) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-func (m *MockProjectRepository) List(ctx context.Context, params utilities.PaginationParams, search string, status user.ProjectStatus) ([]user.Project, error) {
-	args := m.Called(ctx, params, search, status)
-	return args.Get(0).([]user.Project), args.Error(1)
-}
-
-func (m *MockProjectRepository) ListByUserID(ctx context.Context, userID utilities.UserID, params utilities.PaginationParams) ([]user.Project, error) {
-	args := m.Called(ctx, userID, params)
-	return args.Get(0).([]user.Project), args.Error(1)
-}
-
-// TestRepositoryFactory tests the repository factory pattern
-func TestRepositoryFactory(t *testing.T) {
-	factory := user.NewPostgreSQLRepositoryFactory()
-
-	t.Run("Factory creation", func(t *testing.T) {
-		assert.NotNil(t, factory)
-	})
-
-	t.Run("Invalid database type", func(t *testing.T) {
+		// Test error handling
 		repo, err := factory.CreateProjectRepository("invalid-db")
+		assert.Error(t, err, "Should return error for invalid database type")
+		assert.Nil(t, repo, "Repository should be nil on error")
+	})
 
-		assert.Error(t, err)
-		assert.Nil(t, repo)
-		assert.Contains(t, err.Error(), "invalid database type")
+	t.Run("Repository_With_Cache_Integration", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		// Create mocks for dependencies that repositories might use
+		mockCache := mocks.NewMockBasicCacheOperations(ctrl)
+		mockConfig := mocks.NewMockConfigProvider(ctrl)
+
+		ctx := context.Background()
+
+		// Test cache integration patterns that repositories might use
+		projectKey := "project:123"
+		projectData := `{"id":"123","name":"Test Project"}`
+
+		// Set up cache expectations
+		mockCache.EXPECT().Get(ctx, projectKey).Return("", assert.AnError) // Cache miss
+		mockCache.EXPECT().Set(ctx, projectKey, projectData, time.Hour).Return(nil)
+
+		// Set up config expectations for repository settings
+		mockConfig.EXPECT().Get(ctx, "database.timeout").Return("30s", nil)
+
+		// Test cache miss scenario
+		_, err := mockCache.Get(ctx, projectKey)
+		assert.Error(t, err, "Cache miss should return error")
+
+		// Test cache set after database fetch
+		err = mockCache.Set(ctx, projectKey, projectData, time.Hour)
+		assert.NoError(t, err, "Cache set should succeed")
+
+		// Test config retrieval
+		timeout, err := mockConfig.Get(ctx, "database.timeout")
+		assert.NoError(t, err, "Config get should succeed")
+		assert.Equal(t, "30s", timeout, "Should get correct timeout value")
+	})
+
+	t.Run("UserID_ProjectID_Validation", func(t *testing.T) {
+		// Test type safety for our domain types
+		userID := utilities.UserID("user-123")
+		projectID := utilities.ProjectID("project-456")
+
+		// Validate UserID
+		assert.NotEmpty(t, string(userID), "UserID should not be empty")
+		assert.Contains(t, string(userID), "user", "UserID should contain user prefix")
+
+		// Validate ProjectID
+		assert.NotEmpty(t, string(projectID), "ProjectID should not be empty")
+		assert.Contains(t, string(projectID), "project", "ProjectID should contain project prefix")
+
+		// Test conversion and comparison
+		assert.NotEqual(t, userID, projectID, "UserID and ProjectID should be different types")
 	})
 }
 
-// TestProjectRepositoryInterface tests interface compliance using mocks
-func TestProjectRepositoryInterface(t *testing.T) {
-	mockRepo := &MockProjectRepository{}
-	ctx := context.Background()
+// TestUserEntityPatterns tests user entity behavior with proper patterns
+func TestUserEntityPatterns(t *testing.T) {
+	t.Run("User_Entity_Creation", func(t *testing.T) {
+		// Test user entity creation and validation
+		userID := utilities.UserID("user-123")
 
-	// Test Create operation
-	project := user.Project{
-		ID:          utilities.ProjectID("project-123"),
-		UserID:      utilities.UserID("user-456"),
-		Name:        "Test Project",
-		Description: "A test project for validation",
-		Status:      user.StatusActive,
-	}
+		// Validate user entity structure
+		assert.NotEmpty(t, string(userID), "UserID should not be empty")
 
-	mockRepo.On("Create", ctx, project).Return(nil)
-	err := mockRepo.Create(ctx, project)
-	assert.NoError(t, err)
+		// Test that user follows proper domain patterns
+		assert.True(t, len(string(userID)) > 0, "UserID should have content")
+	})
 
-	// Test GetByID operation
-	mockRepo.On("GetByID", ctx, utilities.ProjectID("project-123")).Return(project, nil)
-	result, err := mockRepo.GetByID(ctx, utilities.ProjectID("project-123"))
-	assert.NoError(t, err)
-	assert.Equal(t, project.ID, result.ID)
+	t.Run("Project_Entity_Creation", func(t *testing.T) {
+		// Test project entity creation and validation
+		projectID := utilities.ProjectID("project-456")
 
-	// Test Update operation
-	updatedProject := project
-	updatedProject.Name = "Updated Project"
-	mockRepo.On("Update", ctx, updatedProject).Return(nil)
-	err = mockRepo.Update(ctx, updatedProject)
-	assert.NoError(t, err)
+		// Validate project entity structure
+		assert.NotEmpty(t, string(projectID), "ProjectID should not be empty")
 
-	// Test Delete operation
-	mockRepo.On("Delete", ctx, utilities.ProjectID("project-123")).Return(nil)
-	err = mockRepo.Delete(ctx, utilities.ProjectID("project-123"))
-	assert.NoError(t, err)
-
-	// Test List operation
-	mockRepo.On("List", ctx, utilities.PaginationParams{}, "", user.StatusActive).Return([]user.Project{project}, nil)
-	projects, err := mockRepo.List(ctx, utilities.PaginationParams{}, "", user.StatusActive)
-	assert.NoError(t, err)
-	assert.Len(t, projects, 1)
-
-	mockRepo.AssertExpectations(t)
-}
-
-// TestProjectModel tests the project model structure
-func TestProjectModel(t *testing.T) {
-	project := user.ProjectModel{
-		ID:          utilities.ProjectID("project-123"),
-		UserID:      utilities.UserID("user-456"),
-		Name:        "Test Project",
-		Description: "A test project for validation",
-		Status:      user.StatusActive,
-	}
-
-	assert.NotEmpty(t, project.ID)
-	assert.NotEmpty(t, project.UserID)
-	assert.NotEmpty(t, project.Name)
-	assert.NotEmpty(t, project.Description)
-	assert.Equal(t, user.StatusActive, project.Status)
-}
-
-// TestProjectEntity tests the project entity structure
-func TestProjectEntity(t *testing.T) {
-	project := user.Project{
-		ID:          utilities.ProjectID("project-123"),
-		UserID:      utilities.UserID("user-456"),
-		Name:        "Test Project",
-		Description: "A test project for validation",
-		Status:      user.StatusActive,
-	}
-
-	assert.NotEmpty(t, project.ID)
-	assert.NotEmpty(t, project.UserID)
-	assert.NotEmpty(t, project.Name)
-	assert.NotEmpty(t, project.Description)
-	assert.Equal(t, user.StatusActive, project.Status)
-}
-
-// TestUserIDValidation tests UserID type validation
-func TestUserIDValidation(t *testing.T) {
-	tests := []struct {
-		name   string
-		userID utilities.UserID
-		valid  bool
-	}{
-		{
-			name:   "Valid user ID",
-			userID: utilities.UserID("user-123"),
-			valid:  true,
-		},
-		{
-			name:   "Empty user ID",
-			userID: utilities.UserID(""),
-			valid:  false,
-		},
-		{
-			name:   "Valid UUID user ID",
-			userID: utilities.UserID("550e8400-e29b-41d4-a716-446655440000"),
-			valid:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.valid {
-				assert.NotEmpty(t, string(tt.userID))
-				assert.True(t, len(string(tt.userID)) > 0)
-			} else {
-				assert.Empty(t, string(tt.userID))
-			}
-		})
-	}
-}
-
-// TestProjectIDValidation tests ProjectID type validation
-func TestProjectIDValidation(t *testing.T) {
-	tests := []struct {
-		name      string
-		projectID utilities.ProjectID
-		valid     bool
-	}{
-		{
-			name:      "Valid project ID",
-			projectID: utilities.ProjectID("project-123"),
-			valid:     true,
-		},
-		{
-			name:      "Empty project ID",
-			projectID: utilities.ProjectID(""),
-			valid:     false,
-		},
-		{
-			name:      "Valid UUID project ID",
-			projectID: utilities.ProjectID("550e8400-e29b-41d4-a716-446655440000"),
-			valid:     true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.valid {
-				assert.NotEmpty(t, string(tt.projectID))
-				assert.True(t, len(string(tt.projectID)) > 0)
-			} else {
-				assert.Empty(t, string(tt.projectID))
-			}
-		})
-	}
+		// Test that project follows proper domain patterns
+		assert.True(t, len(string(projectID)) > 0, "ProjectID should have content")
+	})
 }

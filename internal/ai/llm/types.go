@@ -8,19 +8,25 @@ import (
 
 // LLMProvider defines the interface that all LLM providers must implement
 type LLMProvider interface {
-	// GenerateCode using the provider's model
+	LLMGenerationOperations
+	LLMProviderOperations
+	HealthOperations
+}
+
+// LLMGenerationOperations defines code generation operations
+type LLMGenerationOperations interface {
 	GenerateCode(ctx context.Context, req *GenerationRequest) (*GenerationResponse, error)
+}
 
-	// HealthCheck validates provider configuration and connectivity
-	HealthCheck(ctx context.Context) error
-
-	// GetProviderInfo returns provider-specific metadata
+// LLMProviderOperations defines provider-specific operations
+type LLMProviderOperations interface {
 	GetProviderInfo() ProviderInfo
-
-	// GetLimits returns provider-specific rate limits and quotas
 	GetLimits() ProviderLimits
+}
 
-	// Close closes the provider connection
+// HealthOperations defines health and lifecycle operations
+type HealthOperations interface {
+	HealthCheck(ctx context.Context) error
 	Close() error
 }
 

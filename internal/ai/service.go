@@ -115,6 +115,12 @@ func (s *Service) StreamGenerationWithParams(prompt string, userID string, param
 
 // ValidateGeneratedCode validates the generated code
 func (s *Service) ValidateGeneratedCode(code string) (bool, []string, error) {
+	// Use custom validation function if provided (for testing and extensibility)
+	if s.validateFunc != nil {
+		return s.validateFunc(code)
+	}
+
+	// Default validation logic
 	var errors []string
 	// Syntax validation (HTML)
 	if _, err := html.Parse(strings.NewReader(code)); err != nil {

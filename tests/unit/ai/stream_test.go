@@ -7,28 +7,31 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 
 	"github.com/EliasRanz/ai-code-gen/internal/ai"
+	"github.com/EliasRanz/ai-code-gen/tests/mocks"
 )
 
-type mockStreamLLMClient struct{}
+func newStreamTestHandler(ctrl *gomock.Controller) *ai.Handler {
+	mockLLM := mocks.NewMockLLMClient(ctrl)
+	mockLLM.EXPECT().Generate(gomock.Any()).Return("", nil).AnyTimes()
+	mockLLM.EXPECT().StreamGenerate(gomock.Any(), gomock.Any()).DoAndReturn(func(prompt string, responseChannel chan string) error {
+		for _, chunk := range []string{"chunk1", "chunk2", "chunk3"} {
+			responseChannel <- chunk
+		}
+		return nil
+	}).AnyTimes()
 
-func (m *mockStreamLLMClient) Generate(prompt string) (string, error) { return "", nil }
-func (m *mockStreamLLMClient) StreamGenerate(prompt string, responseChannel chan string) error {
-	for _, chunk := range []string{"chunk1", "chunk2", "chunk3"} {
-		responseChannel <- chunk
-	}
-	return nil
-}
-
-func newStreamTestHandler() *ai.Handler {
-	svc := ai.NewService(&mockStreamLLMClient{})
+	svc := ai.NewService(mockLLM)
 	return ai.NewHandler(svc)
 }
 
 func TestStreamHandler_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := newStreamTestHandler()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	h := newStreamTestHandler(ctrl)
 	r := gin.Default()
 	r.GET("/ai/stream/:sessionId", h.Stream)
 	w := httptest.NewRecorder()
@@ -42,7 +45,9 @@ func TestStreamHandler_Success(t *testing.T) {
 
 func TestStreamHandler_MissingPrompt(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := newStreamTestHandler()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	h := newStreamTestHandler(ctrl)
 	r := gin.Default()
 	r.GET("/ai/stream/:sessionId", h.Stream)
 	w := httptest.NewRecorder()

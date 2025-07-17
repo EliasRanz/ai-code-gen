@@ -55,6 +55,11 @@
   - [ ] Generate test coverage: `go test -coverprofile=coverage.out ./...`
   - [ ] Ensure 90%+ coverage across all service packages
   - [ ] Validate integration test coverage
+  - [ ] **🏗️ VALIDATE MOCK INTEGRATION PATTERN**: Ensure ADR-024 mock integration strategy is fully implemented
+    - [ ] Verify all services use generated mocks from `scripts/generate-mocks.sh`
+    - [ ] Validate `gomock.Controller` patterns in all test files
+    - [ ] Ensure mock compilation and type safety across all test packages
+    - [ ] Reference comprehensive mock integration validation from existing cache/user/ai tests
 - [ ] **🏗️ IMPLEMENT ERROR HANDLING INTERFACE PATTERN**: Create consistent error handling interface across all services
   - [ ] Design `ErrorHandler` interface following Java-style pattern for consistent error management
   - [ ] Implement interface for logging, alerting, recovery, and future error handling strategies

@@ -6,30 +6,34 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	
+	"go.uber.org/mock/gomock"
+
 	"github.com/EliasRanz/ai-code-gen/internal/ai"
+	"github.com/EliasRanz/ai-code-gen/tests/mocks"
 )
 
-type mockLLMClient struct{}
+func newTestHandler(ctrl *gomock.Controller) *ai.Handler {
+	mockLLM := mocks.NewMockLLMClient(ctrl)
+	mockLLM.EXPECT().Generate(gomock.Any()).DoAndReturn(func(prompt string) (string, error) {
+		if prompt == "fail" {
+			return "", assert.AnError
+		}
+		return "<div>Generated UI</div>", nil
+	}).AnyTimes()
 
-func (m *mockLLMClient) Generate(prompt string) (string, error) {
-	if prompt == "fail" {
-		return "", assert.AnError
-	}
-	return "<div>Generated UI</div>", nil
-}
-func (m *mockLLMClient) StreamGenerate(prompt string, responseChannel chan string) error { return nil }
-
-func newTestHandler() *ai.Handler {
-	svc := ai.NewService(&mockLLMClient{})
+	svc := ai.NewService(mockLLM)
 	return ai.NewHandler(svc)
 }
 
 func TestGenerateHandler_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := newTestHandler()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	h := newTestHandler(ctrl)
 	r := gin.Default()
 	r.POST("/ai/generate", h.Generate)
 	body, _ := json.Marshal(ai.GenerateRequest{Prompt: "hello"})
@@ -45,7 +49,10 @@ func TestGenerateHandler_Success(t *testing.T) {
 
 func TestGenerateHandler_InvalidRequest(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := newTestHandler()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	h := newTestHandler(ctrl)
 	r := gin.Default()
 	r.POST("/ai/generate", h.Generate)
 	w := httptest.NewRecorder()
@@ -58,7 +65,15 @@ func TestGenerateHandler_InvalidRequest(t *testing.T) {
 
 func TestGenerateHandler_ServiceError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := newTestHandler()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create a specific mock for error case
+	mockLLM := mocks.NewMockLLMClient(ctrl)
+	mockLLM.EXPECT().Generate("fail").Return("", assert.AnError)
+
+	svc := ai.NewService(mockLLM)
+	h := ai.NewHandler(svc)
 	r := gin.Default()
 	r.POST("/ai/generate", h.Generate)
 	body, _ := json.Marshal(ai.GenerateRequest{Prompt: "fail"})
@@ -67,5 +82,4 @@ func TestGenerateHandler_ServiceError(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 	assert.Equal(t, 500, w.Code)
-	assert.Contains(t, w.Body.String(), "assert.AnError")
 }

@@ -9,22 +9,35 @@ import (
 // CacheProvider defines the core interface that all cache providers must implement
 // This implements the Cache Interface Pattern for provider-agnostic caching
 type CacheProvider interface {
-	// Basic cache operations
+	BasicCacheOperations
+	BatchCacheOperations
+	PatternCacheOperations
+	HealthOperations
+}
+
+// BasicCacheOperations defines single-key cache operations
+type BasicCacheOperations interface {
 	Get(ctx context.Context, key string) (string, error)
 	Set(ctx context.Context, key string, value string, ttl time.Duration) error
 	Delete(ctx context.Context, key string) error
 	Exists(ctx context.Context, key string) (bool, error)
+}
 
-	// Batch operations
+// BatchCacheOperations defines multi-key cache operations
+type BatchCacheOperations interface {
 	MGet(ctx context.Context, keys []string) ([]string, error)
 	MSet(ctx context.Context, pairs map[string]string, ttl time.Duration) error
 	MDelete(ctx context.Context, keys []string) error
+}
 
-	// Pattern operations
+// PatternCacheOperations defines pattern-based cache operations
+type PatternCacheOperations interface {
 	Keys(ctx context.Context, pattern string) ([]string, error)
 	DeleteByPattern(ctx context.Context, pattern string) error
+}
 
-	// Health and lifecycle
+// HealthOperations defines health and lifecycle operations
+type HealthOperations interface {
 	HealthCheck(ctx context.Context) error
 	Close() error
 }
