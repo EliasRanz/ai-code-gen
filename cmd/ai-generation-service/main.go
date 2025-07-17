@@ -2,7 +2,7 @@ package main
 
 import (
 	"time"
-	
+
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 
@@ -48,7 +48,7 @@ func main() {
 	// Initialize AI service components with simple configuration
 	rateLimiter := ai.NewRateLimiter(10, 5) // 10 requests per second, burst of 5
 	quotaManager := ai.NewQuotaManager()
-	
+
 	// Create a basic cache provider for testing
 	cacheConfig := cache.CacheConfig{
 		Host:                   "localhost",
@@ -65,7 +65,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create cache provider")
 	}
-	
+
 	aiCacheConfig := ai.DefaultCacheConfig()
 	cacheManager := ai.NewCacheManager(cacheProvider, aiCacheConfig)
 

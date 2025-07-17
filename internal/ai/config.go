@@ -1,10 +1,12 @@
 package ai
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/EliasRanz/ai-code-gen/internal/ai/llm"
+	"github.com/EliasRanz/ai-code-gen/internal/config"
 )
 
 // Config holds AI service configuration including LLM settings
@@ -172,4 +174,238 @@ func (c *Config) Validate() error {
 func (c *Config) GetProviderConfig(providerName string) (llm.ProviderConfig, bool) {
 	config, exists := c.LLM.Providers[providerName]
 	return config, exists
+}
+
+// AIServiceConfig holds enhanced AI service configuration following new pattern
+type AIServiceConfig struct {
+	Service       config.BaseServiceConfig `json:"service" yaml:"service"`
+	Database      config.DatabaseConfig    `json:"database" yaml:"database"`
+	Redis         config.RedisConfig       `json:"redis" yaml:"redis"`
+	LLM           LLMConfig                `json:"llm" yaml:"llm"`
+	RateLimit     RateLimitConfig          `json:"rate_limit" yaml:"rate_limit"`
+	Quota         QuotaConfig              `json:"quota" yaml:"quota"`
+	Cache         CacheConfig              `json:"cache" yaml:"cache"`
+	Behavior      ServiceConfig            `json:"behavior" yaml:"behavior"`
+	Logging       LoggingConfig            `json:"logging" yaml:"logging"`
+	Observability ObservabilityConfig      `json:"observability" yaml:"observability"`
+}
+
+// LoggingConfig holds logging configuration
+type LoggingConfig struct {
+	Level  string `json:"level" yaml:"level"`
+	Format string `json:"format" yaml:"format"`
+}
+
+// ObservabilityConfig holds observability configuration
+type ObservabilityConfig struct {
+	MetricsEnabled bool   `json:"metrics_enabled" yaml:"metrics_enabled"`
+	TracingEnabled bool   `json:"tracing_enabled" yaml:"tracing_enabled"`
+	JaegerEndpoint string `json:"jaeger_endpoint" yaml:"jaeger_endpoint"`
+}
+
+// AIConfigManager manages AI service configuration
+type AIConfigManager struct {
+	manager config.ConfigManager
+	config  *AIServiceConfig
+}
+
+// NewAIConfigManager creates a new AI configuration manager
+func NewAIConfigManager(provider config.ConfigProvider) *AIConfigManager {
+	manager := config.NewConfigManager(provider)
+
+	// Add validation rules for AI configuration
+	validator := config.NewConfigValidator()
+	addAIValidationRules(validator)
+
+	return &AIConfigManager{
+		manager: manager,
+		config:  &AIServiceConfig{},
+	}
+}
+
+// LoadConfig loads and validates AI service configuration
+func (m *AIConfigManager) LoadConfig(ctx context.Context) error {
+	if err := m.manager.LoadConfig(ctx); err != nil {
+		return fmt.Errorf("failed to load AI configuration: %w", err)
+	}
+
+	// Map configuration to struct
+	if err := m.mapConfig(); err != nil {
+		return fmt.Errorf("failed to map AI configuration: %w", err)
+	}
+
+	// Apply defaults
+	m.applyDefaults()
+
+	return nil
+}
+
+// GetConfig returns the current AI service configuration
+func (m *AIConfigManager) GetConfig() *AIServiceConfig {
+	return m.config
+}
+
+// Watch watches for configuration changes
+func (m *AIConfigManager) Watch(ctx context.Context, callback func()) error {
+	return m.manager.Watch(ctx, func() {
+		if err := m.mapConfig(); err == nil {
+			m.applyDefaults()
+			callback()
+		}
+	})
+}
+
+// Reload reloads the configuration
+func (m *AIConfigManager) Reload(ctx context.Context) error {
+	return m.LoadConfig(ctx)
+}
+
+// mapConfig maps raw configuration data to AI config struct
+func (m *AIConfigManager) mapConfig() error {
+	// Service configuration
+	m.config.Service.Name = m.manager.GetString("service.name")
+	m.config.Service.Host = m.manager.GetString("service.host")
+	m.config.Service.Port = m.manager.GetInt("service.port")
+	m.config.Service.Environment = m.manager.GetString("service.environment")
+	m.config.Service.Version = m.manager.GetString("service.version")
+
+	// LLM configuration
+	m.config.LLM.DefaultProvider = m.manager.GetString("llm.default.provider")
+	m.config.LLM.FreeTierOnly = m.manager.GetBool("llm.free.tier.only")
+	m.config.LLM.MaxPromptLength = m.manager.GetInt("llm.max.prompt.length")
+	m.config.LLM.MaxTokensPerReq = m.manager.GetInt("llm.max.tokens.per.request")
+	m.config.LLM.DefaultModel = m.manager.GetString("llm.default.model")
+	m.config.LLM.DefaultTemperature = m.manager.GetFloat64("llm.default.temperature")
+	m.config.LLM.DefaultMaxTokens = m.manager.GetInt("llm.default.max.tokens")
+	m.config.LLM.DefaultTimeout = m.manager.GetDuration("llm.default.timeout")
+
+	// Rate limiting configuration
+	m.config.RateLimit.RequestsPerMinute = m.manager.GetInt("rate.limit.requests.per.minute")
+	m.config.RateLimit.BurstSize = m.manager.GetInt("rate.limit.burst.size")
+	m.config.RateLimit.CleanupInterval = m.manager.GetDuration("rate.limit.cleanup.interval")
+
+	// Quota configuration
+	m.config.Quota.DefaultDailyLimit = m.manager.GetInt("quota.default.daily.limit")
+	m.config.Quota.PremiumDailyLimit = m.manager.GetInt("quota.premium.daily.limit")
+	m.config.Quota.ResetTime = m.manager.GetString("quota.reset.time")
+	m.config.Quota.TrackingEnabled = m.manager.GetBool("quota.tracking.enabled")
+	m.config.Quota.CleanupInterval = m.manager.GetDuration("quota.cleanup.interval")
+
+	return nil
+}
+
+// applyDefaults applies default values to configuration
+func (m *AIConfigManager) applyDefaults() {
+	if m.config.Service.Name == "" {
+		m.config.Service.Name = "ai-service"
+	}
+	if m.config.Service.Host == "" {
+		m.config.Service.Host = "0.0.0.0"
+	}
+	if m.config.Service.Port == 0 {
+		m.config.Service.Port = 8083
+	}
+	if m.config.Service.Environment == "" {
+		m.config.Service.Environment = "development"
+	}
+
+	if m.config.LLM.DefaultProvider == "" {
+		m.config.LLM.DefaultProvider = "openai"
+	}
+	if m.config.LLM.MaxPromptLength == 0 {
+		m.config.LLM.MaxPromptLength = 10000
+	}
+	if m.config.LLM.MaxTokensPerReq == 0 {
+		m.config.LLM.MaxTokensPerReq = 4096
+	}
+	if m.config.LLM.DefaultModel == "" {
+		m.config.LLM.DefaultModel = "gpt-3.5-turbo"
+	}
+	if m.config.LLM.DefaultTemperature == 0 {
+		m.config.LLM.DefaultTemperature = 0.7
+	}
+	if m.config.LLM.DefaultMaxTokens == 0 {
+		m.config.LLM.DefaultMaxTokens = 4096
+	}
+	if m.config.LLM.DefaultTimeout == 0 {
+		m.config.LLM.DefaultTimeout = 30 * time.Second
+	}
+
+	if m.config.RateLimit.RequestsPerMinute == 0 {
+		m.config.RateLimit.RequestsPerMinute = 60
+	}
+	if m.config.RateLimit.BurstSize == 0 {
+		m.config.RateLimit.BurstSize = 10
+	}
+	if m.config.RateLimit.CleanupInterval == 0 {
+		m.config.RateLimit.CleanupInterval = 10 * time.Minute
+	}
+
+	if m.config.Quota.DefaultDailyLimit == 0 {
+		m.config.Quota.DefaultDailyLimit = 100
+	}
+	if m.config.Quota.PremiumDailyLimit == 0 {
+		m.config.Quota.PremiumDailyLimit = 1000
+	}
+	if m.config.Quota.ResetTime == "" {
+		m.config.Quota.ResetTime = "00:00"
+	}
+	if m.config.Quota.CleanupInterval == 0 {
+		m.config.Quota.CleanupInterval = time.Hour
+	}
+}
+
+// addAIValidationRules adds validation rules for AI configuration
+func addAIValidationRules(validator config.ConfigValidator) {
+	// Service port validation
+	validator.AddRule(config.ValidationRule{
+		Key:      "service.port",
+		Type:     "int",
+		MinValue: 1,
+		MaxValue: 65535,
+	})
+
+	// LLM validation
+	validator.AddRule(config.ValidationRule{
+		Key:      "llm.default_provider",
+		Required: true,
+		Type:     "string",
+	})
+
+	validator.AddRule(config.ValidationRule{
+		Key:      "llm.max_prompt_length",
+		Type:     "int",
+		MinValue: 100,
+		MaxValue: 100000,
+	})
+
+	validator.AddRule(config.ValidationRule{
+		Key:      "llm.default_temperature",
+		Type:     "float",
+		MinValue: 0.0,
+		MaxValue: 2.0,
+	})
+
+	// Rate limiting validation
+	validator.AddRule(config.ValidationRule{
+		Key:      "rate_limit.requests_per_minute",
+		Type:     "int",
+		MinValue: 1,
+		MaxValue: 10000,
+	})
+
+	validator.AddRule(config.ValidationRule{
+		Key:      "rate_limit.burst_size",
+		Type:     "int",
+		MinValue: 1,
+		MaxValue: 1000,
+	})
+
+	// Quota validation
+	validator.AddRule(config.ValidationRule{
+		Key:      "quota.default_daily_limit",
+		Type:     "int",
+		MinValue: 1,
+		MaxValue: 100000,
+	})
 }
