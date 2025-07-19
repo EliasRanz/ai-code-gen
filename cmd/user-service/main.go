@@ -5,20 +5,16 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
-
-	pb "github.com/EliasRanz/ai-code-gen/api/proto/user"
 	"github.com/EliasRanz/ai-code-gen/internal/config"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/validation"
-	grpc_iface "github.com/EliasRanz/ai-code-gen/internal/interfaces/grpc"
 	http_iface "github.com/EliasRanz/ai-code-gen/internal/interfaces/http"
-	"github.com/EliasRanz/ai-code-gen/internal/service"
 	"github.com/EliasRanz/ai-code-gen/internal/user"
 	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 	"github.com/EliasRanz/ai-code-gen/internal/utilities/database"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
 )
 
 // Dummy notification service
@@ -46,7 +42,7 @@ func main() {
 	}
 
 	// Create service
-	svc := service.New("user-service", "1.0.0", cfg)
+	svc := utilities.New("user-service", "1.0.0", cfg)
 
 	// Initialize observability
 	if err := svc.Initialize(); err != nil {
@@ -77,7 +73,7 @@ func main() {
 	listUsersUC := user.NewUserLister(userRepo)
 
 	// Initialize gRPC server
-	userGRPCServer := grpc_iface.NewUserServer(
+	userGRPCServer := user.NewUserGRPCServer(
 		createUserUC,
 		getUserUC,
 		updateUserUC,
@@ -132,7 +128,7 @@ func setupUserRouter(cfg *config.Config, handler *http_iface.UserHandler) *gin.E
 }
 
 // startGRPCServer initializes and starts the gRPC server for the user service
-func startGRPCServer(cfg *config.Config, userServer *grpc_iface.UserServer) error {
+func startGRPCServer(cfg *config.Config, userServer *user.UserGRPCServer) error {
 	grpcAddr := fmt.Sprintf(":%d", cfg.UserService.Port)
 	listener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
@@ -140,7 +136,9 @@ func startGRPCServer(cfg *config.Config, userServer *grpc_iface.UserServer) erro
 	}
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterUserServiceServer(grpcServer, userServer)
+	if err := userServer.RegisterService(grpcServer); err != nil {
+		return fmt.Errorf("failed to register user service: %w", err)
+	}
 
 	log.Info().Msgf("gRPC server listening on %s", grpcAddr)
 	if err := grpcServer.Serve(listener); err != nil {

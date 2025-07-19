@@ -9,7 +9,7 @@ import (
 	"github.com/EliasRanz/ai-code-gen/internal/ai"
 	"github.com/EliasRanz/ai-code-gen/internal/cache"
 	"github.com/EliasRanz/ai-code-gen/internal/config"
-	"github.com/EliasRanz/ai-code-gen/internal/service"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
 func main() {
@@ -28,7 +28,7 @@ func main() {
 	}
 
 	// Create service
-	svc := service.New("ai-generation-service", "1.0.0", cfg)
+	svc := utilities.New("ai-generation-service", "1.0.0", cfg)
 
 	// Initialize observability
 	if err := svc.Initialize(); err != nil {

@@ -12,7 +12,7 @@ import (
 	"github.com/EliasRanz/ai-code-gen/internal/cache"
 	"github.com/EliasRanz/ai-code-gen/internal/config"
 	"github.com/EliasRanz/ai-code-gen/internal/gateway"
-	"github.com/EliasRanz/ai-code-gen/internal/service"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
 // Metrics tracking
@@ -42,7 +42,7 @@ func main() {
 	}
 
 	// Create service instance
-	svc := service.New(serviceName, version, cfg)
+	svc := utilities.New(serviceName, version, cfg)
 
 	// Initialize observability
 	if err := svc.Initialize(); err != nil {

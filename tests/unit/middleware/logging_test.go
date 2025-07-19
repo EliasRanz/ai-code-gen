@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/EliasRanz/ai-code-gen/internal/middleware"
+	"github.com/EliasRanz/ai-code-gen/internal/gateway"
 )
 
 func TestMetricsMiddleware(t *testing.T) {
@@ -53,7 +53,7 @@ func TestMetricsMiddleware(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create router with metrics middleware
 			router := gin.New()
-			router.Use(middleware.MetricsMiddleware())
+			router.Use(gateway.MetricsMiddleware())
 
 			// Add test routes
 			router.GET("/api/test", func(c *gin.Context) {
@@ -96,7 +96,7 @@ func TestMetricsCollection(t *testing.T) {
 
 	// Create router with metrics middleware
 	router := gin.New()
-	router.Use(middleware.MetricsMiddleware())
+	router.Use(gateway.MetricsMiddleware())
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
@@ -117,7 +117,7 @@ func TestRequestIDMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
-	router.Use(middleware.RequestID())
+	router.Use(gateway.RequestID())
 	router.GET("/test", func(c *gin.Context) {
 		requestID := c.GetString("request_id")
 		c.JSON(200, gin.H{"request_id": requestID})
@@ -145,7 +145,7 @@ func TestErrorHandlerMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
-	router.Use(middleware.ErrorHandler())
+	router.Use(gateway.ErrorHandler())
 	
 	// Route that triggers a bind error
 	router.POST("/bind-error", func(c *gin.Context) {

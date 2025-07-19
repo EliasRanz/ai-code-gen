@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/time/rate"
 
-	"github.com/EliasRanz/ai-code-gen/internal/middleware"
+	"github.com/EliasRanz/ai-code-gen/internal/gateway"
 )
 
 func TestNewRateLimiter(t *testing.T) {
@@ -46,7 +46,7 @@ func TestNewRateLimiter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rl := middleware.NewRateLimiter(tt.rateLimit, tt.burst)
+			rl := gateway.NewRateLimiter(tt.rateLimit, tt.burst)
 			assert.NotNil(t, rl)
 
 			// Create a test client to verify limiter behavior
@@ -57,7 +57,7 @@ func TestNewRateLimiter(t *testing.T) {
 }
 
 func TestRateLimiter_GetLimiter(t *testing.T) {
-	rl := middleware.NewRateLimiter(rate.Limit(10), 5)
+	rl := gateway.NewRateLimiter(rate.Limit(10), 5)
 
 	// Test getting limiter for same client returns same instance
 	limiter1 := rl.GetLimiter("client1")
@@ -74,7 +74,7 @@ func TestRateLimit_AllowedRequests(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Create rate limiter allowing 2 requests per second with burst of 2
-	rl := middleware.NewRateLimiter(rate.Limit(2), 2)
+	rl := gateway.NewRateLimiter(rate.Limit(2), 2)
 
 	router := gin.New()
 	router.Use(rl.RateLimit())
@@ -101,7 +101,7 @@ func TestRateLimit_ExceedsLimit(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Create very restrictive rate limiter: 1 request per second, burst of 1
-	rl := middleware.NewRateLimiter(rate.Limit(1), 1)
+	rl := gateway.NewRateLimiter(rate.Limit(1), 1)
 
 	router := gin.New()
 	router.Use(rl.RateLimit())
@@ -132,7 +132,7 @@ func TestRateLimit_DifferentClients(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Create rate limiter: 1 request per second, burst of 1
-	rl := middleware.NewRateLimiter(rate.Limit(1), 1)
+	rl := gateway.NewRateLimiter(rate.Limit(1), 1)
 
 	router := gin.New()
 	router.Use(rl.RateLimit())
@@ -172,7 +172,7 @@ func TestRateLimit_DifferentClients(t *testing.T) {
 func TestCreateRateLimitMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	middleware := middleware.CreateRateLimitMiddleware(10, 5)
+	middleware := gateway.CreateRateLimitMiddleware(10, 5)
 	assert.NotNil(t, middleware)
 
 	router := gin.New()
@@ -203,7 +203,7 @@ func TestRateLimit_RecoveryAfterTime(t *testing.T) {
 
 	// Create rate limiter with 10 requests per second, burst of 1
 	// This means after burst, we need to wait 0.1 seconds for next token
-	rl := middleware.NewRateLimiter(rate.Limit(10), 1)
+	rl := gateway.NewRateLimiter(rate.Limit(10), 1)
 
 	router := gin.New()
 	router.Use(rl.RateLimit())
@@ -240,7 +240,7 @@ func TestRateLimit_ConcurrentClients(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Create rate limiter: 5 requests per second, burst of 2
-	rl := middleware.NewRateLimiter(rate.Limit(5), 2)
+	rl := gateway.NewRateLimiter(rate.Limit(5), 2)
 
 	router := gin.New()
 	router.Use(rl.RateLimit())

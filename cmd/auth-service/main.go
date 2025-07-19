@@ -8,7 +8,7 @@ import (
 	"github.com/EliasRanz/ai-code-gen/internal/config"
 	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
 	"github.com/EliasRanz/ai-code-gen/internal/interfaces/http"
-	"github.com/EliasRanz/ai-code-gen/internal/service"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 	"github.com/EliasRanz/ai-code-gen/internal/utilities/database"
 )
 
@@ -77,7 +77,7 @@ func main() {
 	router := setupAuthRouter(cfg, authHandler)
 
 	// Setup HTTP server
-	svc := service.New("auth-service", "1.0.0", cfg)
+	svc := utilities.New("auth-service", "1.0.0", cfg)
 	svc.SetupHTTPServer(router)
 
 	// Start service

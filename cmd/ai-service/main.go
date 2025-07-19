@@ -5,7 +5,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/EliasRanz/ai-code-gen/internal/config"
-	"github.com/EliasRanz/ai-code-gen/internal/service"
+	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 	}
 
 	// Create service
-	svc := service.New("ai-service", "1.0.0", cfg)
+	svc := utilities.New("ai-service", "1.0.0", cfg)
 
 	// Initialize observability
 	if err := svc.Initialize(); err != nil {
@@ -66,7 +66,7 @@ func main() {
 			"prompts": []string{"code-generation", "ui-design", "documentation"},
 		})
 	})
-	
+
 	router.POST("/prompts", func(c *gin.Context) {
 		c.JSON(201, gin.H{
 			"message": "Create prompt endpoint",
