@@ -11,8 +11,7 @@ import (
 
 	"github.com/EliasRanz/ai-code-gen/internal/cache"
 	"github.com/EliasRanz/ai-code-gen/internal/config"
-	"github.com/EliasRanz/ai-code-gen/internal/middleware"
-	"github.com/EliasRanz/ai-code-gen/internal/proxy"
+	"github.com/EliasRanz/ai-code-gen/internal/gateway"
 	"github.com/EliasRanz/ai-code-gen/internal/service"
 )
 
@@ -75,19 +74,37 @@ func setupRouter(cfg *config.Config) *gin.Engine {
 		log.Fatal().Err(err).Msg("Failed to initialize auth cache")
 	}
 
-	// Global middleware
+	// Create gateway factory with auth service URL and cache
+	authServiceURL := fmt.Sprintf("http://localhost:%d", cfg.AuthService.Port)
+	factory := gateway.NewMiddlewareFactory(authServiceURL, authCache)
+
+	// Create observable gateway with middleware and observers
+	observableGateway := gateway.NewObservableGateway(factory)
+
+	// Setup consolidated middleware using our new gateway
+	middlewareConfigs := []gateway.MiddlewareConfig{
+		gateway.NewBasicMiddlewareConfig("logging", true, nil),
+		gateway.NewBasicMiddlewareConfig("rate-limit", true, map[string]interface{}{
+			"requests_per_second": 100,
+			"burst":               10,
+		}),
+		gateway.NewBasicMiddlewareConfig("auth-proxy", true, nil),
+	}
+
+	// Setup middleware chain
+	if err := observableGateway.SetupMiddleware(middlewareConfigs); err != nil {
+		log.Fatal().Err(err).Msg("Failed to setup gateway middleware")
+	}
+
+	// Apply consolidated middleware to router
 	router.Use(gin.Recovery())
-	router.Use(middleware.RequestID())
-	router.Use(middleware.RequestLogger())
-	router.Use(middleware.TracingMiddleware(serviceName))
-	router.Use(middleware.MetricsMiddleware())
+	router.Use(observableGateway.CreateGinMiddleware())
 
 	// Add request counting middleware
 	router.Use(func(c *gin.Context) {
 		incrementRequestCount()
 		c.Next()
 	})
-	router.Use(middleware.ErrorHandler())
 
 	// CORS configuration
 	corsConfig := cors.DefaultConfig()
@@ -97,27 +114,24 @@ func setupRouter(cfg *config.Config) *gin.Engine {
 	corsConfig.AllowCredentials = true
 	router.Use(cors.New(corsConfig))
 
-	// Rate limiting (100 requests per minute per IP)
-	router.Use(middleware.CreateRateLimitMiddleware(100, 10))
-
 	// Health and metrics endpoints
 	router.GET("/health", healthHandler)
 	router.GET("/metrics", metricsHandler)
 
 	// Service configurations
-	authService := proxy.ServiceConfig{
+	authService := gateway.ServiceConfig{
 		Name:       "auth-service",
 		BaseURL:    fmt.Sprintf("http://localhost:%d", cfg.AuthService.Port),
 		HealthPath: "/health",
 	}
 
-	userService := proxy.ServiceConfig{
+	userService := gateway.ServiceConfig{
 		Name:       "user-service",
 		BaseURL:    fmt.Sprintf("http://localhost:%d", cfg.UserService.Port),
 		HealthPath: "/health",
 	}
 
-	aiService := proxy.ServiceConfig{
+	aiService := gateway.ServiceConfig{
 		Name:       "ai-service",
 		BaseURL:    fmt.Sprintf("http://localhost:%d", cfg.AIService.Port),
 		HealthPath: "/health",
@@ -126,9 +140,9 @@ func setupRouter(cfg *config.Config) *gin.Engine {
 	// Service health checks
 	healthGroup := router.Group("/health")
 	{
-		healthGroup.GET("/auth", proxy.HealthCheck(authService))
-		healthGroup.GET("/users", proxy.HealthCheck(userService))
-		healthGroup.GET("/ai", proxy.HealthCheck(aiService))
+		healthGroup.GET("/auth", gateway.HealthCheckHandler(authService))
+		healthGroup.GET("/users", gateway.HealthCheckHandler(userService))
+		healthGroup.GET("/ai", gateway.HealthCheckHandler(aiService))
 	}
 
 	// API routes with authentication
@@ -137,41 +151,38 @@ func setupRouter(cfg *config.Config) *gin.Engine {
 		// Public authentication routes
 		authGroup := api.Group("/auth")
 		{
-			authGroup.POST("/login", proxy.ReverseProxy(authService))
-			authGroup.POST("/callback", proxy.ReverseProxy(authService))
-			authGroup.POST("/refresh", proxy.ReverseProxy(authService))
-			authGroup.POST("/logout", proxy.ReverseProxy(authService))
+			authGroup.POST("/login", gateway.ReverseProxy(authService))
+			authGroup.POST("/callback", gateway.ReverseProxy(authService))
+			authGroup.POST("/refresh", gateway.ReverseProxy(authService))
+			authGroup.POST("/logout", gateway.ReverseProxy(authService))
 		}
 
-		// Protected user routes
+		// Protected user routes (auth handled by global gateway middleware)
 		userGroup := api.Group("/users")
-		userGroup.Use(middleware.AuthServiceProxy(authService.BaseURL, authCache))
 		{
-			userGroup.GET("/profile", proxy.ReverseProxy(userService))
-			userGroup.PUT("/profile", proxy.ReverseProxy(userService))
-			userGroup.GET("/projects", proxy.ReverseProxy(userService))
-			userGroup.POST("/projects", proxy.ReverseProxy(userService))
-			userGroup.GET("/projects/:id", proxy.ReverseProxy(userService))
-			userGroup.PUT("/projects/:id", proxy.ReverseProxy(userService))
-			userGroup.DELETE("/projects/:id", proxy.ReverseProxy(userService))
+			userGroup.GET("/profile", gateway.ReverseProxy(userService))
+			userGroup.PUT("/profile", gateway.ReverseProxy(userService))
+			userGroup.GET("/projects", gateway.ReverseProxy(userService))
+			userGroup.POST("/projects", gateway.ReverseProxy(userService))
+			userGroup.GET("/projects/:id", gateway.ReverseProxy(userService))
+			userGroup.PUT("/projects/:id", gateway.ReverseProxy(userService))
+			userGroup.DELETE("/projects/:id", gateway.ReverseProxy(userService))
 		}
 
-		// Protected AI generation routes
+		// Protected AI generation routes (auth handled by global gateway middleware)
 		generateGroup := api.Group("/generate")
-		generateGroup.Use(middleware.AuthServiceProxy(authService.BaseURL, authCache))
 		{
-			generateGroup.POST("/ui", proxy.ReverseProxy(aiService))
-			generateGroup.POST("/component", proxy.ReverseProxy(aiService))
-			generateGroup.GET("/templates", proxy.ReverseProxy(aiService))
-			generateGroup.POST("/analyze", proxy.ReverseProxy(aiService))
+			generateGroup.POST("/ui", gateway.ReverseProxy(aiService))
+			generateGroup.POST("/component", gateway.ReverseProxy(aiService))
+			generateGroup.GET("/templates", gateway.ReverseProxy(aiService))
+			generateGroup.POST("/analyze", gateway.ReverseProxy(aiService))
 		}
 
-		// Admin routes
+		// Admin routes (auth handled by global gateway middleware)
 		adminGroup := api.Group("/admin")
-		adminGroup.Use(middleware.AuthServiceRoleProxy(authService.BaseURL, authCache, "admin"))
 		{
-			adminGroup.GET("/users", proxy.ReverseProxy(userService))
-			adminGroup.GET("/projects", proxy.ReverseProxy(userService))
+			adminGroup.GET("/users", gateway.ReverseProxy(userService))
+			adminGroup.GET("/projects", gateway.ReverseProxy(userService))
 			adminGroup.GET("/metrics", metricsHandler)
 		}
 	}
