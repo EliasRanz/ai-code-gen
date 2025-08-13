@@ -5,18 +5,18 @@
 **Goal**: Flatten domain abstractions into service packages
 
 ### Implementation Steps:
-- [ ] **Domain migration**:
-  - [ ] Move `internal/domain/ai/` contents → `internal/ai/` (merge with existing entities)
-  - [ ] Move `internal/domain/common/` contents → `internal/utilities/` (merge with existing)
-- [ ] **Resolve conflicts**: Between domain entities and existing service entities
-- [ ] **Update imports**: Across all services
-- [ ] **Remove directory**: Empty `internal/domain/`
-- [ ] **🏗️ IMPLEMENT ENTITY INTERFACE PATTERN**: Create consistent domain entity interface across all services
-  - [ ] Design `DomainEntity` interface following Java-style pattern for consistent entity behavior
-  - [ ] Implement interface for User, Project, Generation, and future entities
-  - [ ] Create entity factory pattern for dynamic entity creation and validation
-  - [ ] Ensure all entities follow same interface contract with validation and serialization
-  - [ ] Add entity-agnostic validation, auditing, and change tracking
+- [x] **Domain migration**:
+  - [x] Move `internal/domain/ai/` contents → `internal/ai/` (merge with existing entities)
+  - [x] Move `internal/domain/common/` contents → `internal/utilities/` (merge with existing)
+- [x] **Resolve conflicts**: Between domain entities and existing service entities
+- [x] **Update imports**: Across all services
+- [x] **Remove directory**: Empty `internal/domain/`
+- [x] **🏗️ IMPLEMENT ENTITY INTERFACE PATTERN**: Create consistent domain entity interface across all services
+  - [x] Design `DomainEntity` interface following Java-style pattern for consistent entity behavior
+  - [x] Implement interface for User, Project, Generation, and future entities
+  - [x] Create entity factory pattern for dynamic entity creation and validation
+  - [x] Ensure all entities follow same interface contract with validation and serialization
+  - [x] Add entity-agnostic validation, auditing, and change tracking
 
 ### Entity Interface Pattern Design:
 ```go
@@ -105,24 +105,24 @@ type Generation interface {
 - **Testing**: Easy mock entity implementations for comprehensive testing
 
 ### Test Requirements:
-- [ ] **Organization of tests**: All tests must be appropriately packaged in the `test` directory at the root of the workspace.
-- [ ] **Entity tests**: `internal/ai/entities_test.go`, `internal/utilities/types_test.go`
-- [ ] **95%+ coverage**: entity creation, validation, business rules, type conversions
-- [ ] **Integration tests**: Entity behavior and validation
-- [ ] **Serialization tests**: Entity marshaling/unmarshaling
-- [ ] **🏗️ IMPLEMENT MOCK INTEGRATION PATTERN**: Follow ADR-024 mock integration strategy
-  - [ ] Generate mocks for entity interfaces using `scripts/generate-mocks.sh`
-  - [ ] Apply `mocks.NewMockDomainEntity(ctrl)` pattern for entity testing
-  - [ ] Use generated mocks for factory and validator testing with clean dependency injection
-  - [ ] Reference mock integration patterns from user service tests in `tests/unit/user/`
+- [x] **Organization of tests**: All tests must be appropriately packaged in the `test` directory at the root of the workspace.
+- [x] **Entity tests**: `internal/ai/entities_test.go`, `internal/utilities/types_test.go`
+- [x] **95%+ coverage**: entity creation, validation, business rules, type conversions
+- [x] **Integration tests**: Entity behavior and validation
+- [x] **Serialization tests**: Entity marshaling/unmarshaling
+- [x] **🏗️ IMPLEMENT MOCK INTEGRATION PATTERN**: Follow ADR-024 mock integration strategy
+  - [x] Generate mocks for entity interfaces using `scripts/generate-mocks.sh`
+  - [x] Apply `mocks.NewMockDomainEntity(ctrl)` pattern for entity testing
+  - [x] Use generated mocks for factory and validator testing with clean dependency injection
+  - [x] Reference mock integration patterns from user service tests in `tests/unit/user/`
 
 ### Coding Standards Validation:
-- [ ] **File size limits**: Keep all entity files under 300 lines (refactor at 300+, never exceed 500)
-- [ ] **Function size limits**: Keep entity methods under 30 lines (refactor at 30+, never exceed 50)
-- [ ] **Single responsibility**: Each entity method handles one business rule or operation
-- [ ] **Immutable design**: Prefer immutable entities where possible
-- [ ] **Clear validation**: Explicit validation rules for all entity properties
-- [ ] **Business logic**: Keep domain logic within entities, avoid anemic models
+- [x] **File size limits**: Keep all entity files under 300 lines (refactor at 300+, never exceed 500)
+- [x] **Function size limits**: Keep entity methods under 30 lines (refactor at 30+, never exceed 50)
+- [x] **Single responsibility**: Each entity method handles one business rule or operation
+- [x] **Immutable design**: Prefer immutable entities where possible
+- [x] **Clear validation**: Explicit validation rules for all entity properties
+- [x] **Business logic**: Keep domain logic within entities, avoid anemic models
 
 ### Success Criteria:
 ✅ Clean structure for frontend auth integration  
@@ -132,8 +132,8 @@ type Generation interface {
 ✅ Consistent validation, serialization, and change tracking  
 
 ### Version Control:
-- [ ] **Validate build**: Ensure all tests pass and services compile before committing
-- [ ] **Commit changes**: `git add . && git commit -m "feat: eliminate domain layer and flatten abstractions"`
+- [x] **Validate build**: Ensure all tests pass and services compile before committing
+- [x] **Commit changes**: `git add . && git commit -m "feat: eliminate domain layer and flatten abstractions"`
 
 ---
 
