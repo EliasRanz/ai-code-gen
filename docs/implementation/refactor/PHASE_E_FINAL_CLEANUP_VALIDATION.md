@@ -28,8 +28,8 @@
 ✅ Setup instructions updated  
 
 ### Version Control:
-- [ ] **Commit changes**: `git add . && git commit -m "chore: remove legacy directories and update documentation"`
 - [ ] **Validate build**: Ensure all tests pass and services compile before committing
+- [ ] **Commit changes**: `git add . && git commit -m "chore: remove legacy directories and update documentation"`
 
 ---
 
@@ -388,10 +388,8 @@ func (s *ServiceWithErrorHandling) ProcessRequest(ctx context.Context, req Reque
 ✅ Business rules for error recovery centralized and configurable  
 
 ### Version Control:
-- [ ] **Final commit**: `git add . && git commit -m "feat: complete infrastructure consolidation and centralized auth integration"`
 - [ ] **Validate build**: Full system validation and performance testing
-- [ ] **Create pull request**: `git push origin feature/infrastructure-consolidation-auth-integration`
-- [ ] **Merge to main**: After code review and approval
+- [ ] **Final commit**: `git add . && git commit -m "feat: complete infrastructure consolidation and centralized auth integration"`
 
 ---
 

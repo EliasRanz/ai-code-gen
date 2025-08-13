@@ -156,8 +156,8 @@ function isTokenExpired(token: string): boolean {
 ✅ Session management centralized  
 
 ### Version Control:
-- [ ] **Commit changes**: `git add . && git commit -m "feat: implement NextAuth.js direct auth service integration"`
 - [ ] **Validate build**: Ensure all tests pass and frontend builds successfully before committing
+- [ ] **Commit changes**: `git add . && git commit -m "feat: implement NextAuth.js direct auth service integration"`
 
 ---
 
@@ -1027,5 +1027,5 @@ frontend_testing:
 ✅ Priority-based request queuing with automatic retry and replay  
 
 ### Version Control:
-- [ ] **Commit changes**: `git add . && git commit -m "feat: update frontend API integration for centralized auth"`
 - [ ] **Validate build**: Ensure all tests pass and frontend builds successfully before committing
+- [ ] **Commit changes**: `git add . && git commit -m "feat: update frontend API integration for centralized auth"`

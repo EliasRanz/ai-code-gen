@@ -132,8 +132,8 @@ type Generation interface {
 ✅ Consistent validation, serialization, and change tracking  
 
 ### Version Control:
-- [ ] **Commit changes**: `git add . && git commit -m "feat: eliminate domain layer and flatten abstractions"`
 - [ ] **Validate build**: Ensure all tests pass and services compile before committing
+- [ ] **Commit changes**: `git add . && git commit -m "feat: eliminate domain layer and flatten abstractions"`
 
 ---
 
@@ -418,5 +418,6 @@ func (f *MonitoringDecoratorFactory) CreateCacheDecorator(cache CacheProvider) C
 ✅ Composable monitoring layers with configurable detail levels  
 
 ### Version Control:
-- [ ] **Commit changes**: `git add . && git commit -m "feat: complete final infrastructure moves and test organization"`
 - [ ] **Validate build**: Ensure all tests pass and services compile before committing
+- [ ] **Commit changes**: `git add . && git commit -m "feat: complete final infrastructure moves and test organization"`
+
