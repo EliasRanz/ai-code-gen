@@ -81,7 +81,7 @@ jobs:
         REDIS_HOST: localhost
         REDIS_PORT: 6379
       run: |
-        go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        make test-unit
 
     # - name: Run Go security scan
     #   uses: securego/gosec@master
