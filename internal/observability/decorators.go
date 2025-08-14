@@ -238,20 +238,20 @@ func (m *genericMetrics) GetAverageDuration(operation string) time.Duration {
 
 func (m *genericMetrics) GetMetricsByLabels(labels map[string]string) map[string]interface{} {
 	metrics := make(map[string]interface{})
-	
+
 	// Filter metrics based on labels (simplified implementation)
 	for operation, count := range m.operationCounts {
 		metrics[fmt.Sprintf("%s.count", operation)] = count
 	}
-	
+
 	for operation, count := range m.errorCounts {
 		metrics[fmt.Sprintf("%s.errors", operation)] = count
 	}
-	
+
 	for operation := range m.durations {
 		metrics[fmt.Sprintf("%s.avg_duration", operation)] = m.GetAverageDuration(operation)
 	}
-	
+
 	return metrics
 }
 

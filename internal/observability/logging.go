@@ -7,8 +7,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Logger provides structured logging
-var Logger zerolog.Logger
+// Logger interface for dependency injection (compatible with infrastructure/observability)
+type Logger interface {
+	Debug(msg string, fields ...map[string]interface{})
+	Info(msg string, fields ...map[string]interface{})
+	Warn(msg string, fields ...map[string]interface{})
+	Error(msg string, err error, fields ...map[string]interface{})
+	Fatal(msg string, err error, fields ...map[string]interface{})
+	With(fields map[string]interface{}) Logger
+}
+
+// GlobalLogger provides structured logging
+var GlobalLogger zerolog.Logger
 
 // InitLogging initializes the logging system
 func InitLogging(level string, format string, serviceName string) {
@@ -32,12 +42,12 @@ func InitLogging(level string, format string, serviceName string) {
 			Out:        os.Stdout,
 			TimeFormat: time.RFC3339,
 		}
-		Logger = zerolog.New(output).With().
+		GlobalLogger = zerolog.New(output).With().
 			Timestamp().
 			Str("service", serviceName).
 			Logger()
 	} else {
-		Logger = zerolog.New(os.Stdout).With().
+		GlobalLogger = zerolog.New(os.Stdout).With().
 			Timestamp().
 			Str("service", serviceName).
 			Logger()
@@ -46,43 +56,82 @@ func InitLogging(level string, format string, serviceName string) {
 
 // GetLogger returns a logger with additional context
 func GetLogger(component string) zerolog.Logger {
-	return Logger.With().Str("component", component).Logger()
+	return GlobalLogger.With().Str("component", component).Logger()
 }
 
-// GetLoggerWithContext returns a logger with custom context
-func GetLoggerWithContext(fields map[string]interface{}) zerolog.Logger {
-	logger := Logger
-	for key, value := range fields {
-		logger = logger.With().Interface(key, value).Logger()
+// ZerologLogger wraps zerolog for structured logging (compatible with infrastructure interface)
+type ZerologLogger struct {
+	logger zerolog.Logger
+}
+
+// NewLogger creates a new structured logger compatible with infrastructure/observability interface
+func NewLogger(level string, format string) Logger {
+	InitLogging(level, format, "service")
+	return &ZerologLogger{logger: GlobalLogger}
+}
+
+// Debug logs a debug message
+func (l *ZerologLogger) Debug(msg string, fields ...map[string]interface{}) {
+	event := l.logger.Debug()
+	l.addFields(event, fields...)
+	event.Msg(msg)
+}
+
+// Info logs an info message
+func (l *ZerologLogger) Info(msg string, fields ...map[string]interface{}) {
+	event := l.logger.Info()
+	l.addFields(event, fields...)
+	event.Msg(msg)
+}
+
+// Warn logs a warning message
+func (l *ZerologLogger) Warn(msg string, fields ...map[string]interface{}) {
+	event := l.logger.Warn()
+	l.addFields(event, fields...)
+	event.Msg(msg)
+}
+
+// Error logs an error message
+func (l *ZerologLogger) Error(msg string, err error, fields ...map[string]interface{}) {
+	event := l.logger.Error()
+	if err != nil {
+		event = event.Err(err)
 	}
-	return logger
+	l.addFields(event, fields...)
+	event.Msg(msg)
 }
 
-// LogRequest logs HTTP request information
-func LogRequest(method, path, userAgent string, statusCode int, duration time.Duration) {
-	Logger.Info().
-		Str("method", method).
-		Str("path", path).
-		Str("user_agent", userAgent).
-		Int("status_code", statusCode).
-		Dur("duration", duration).
-		Msg("HTTP request processed")
-}
-
-// LogError logs error information with context
-func LogError(err error, context string, fields map[string]interface{}) {
-	event := Logger.Error().Err(err).Str("context", context)
-
-	for key, value := range fields {
-		event = event.Interface(key, value)
+// Fatal logs a fatal message and exits
+func (l *ZerologLogger) Fatal(msg string, err error, fields ...map[string]interface{}) {
+	event := l.logger.Fatal()
+	if err != nil {
+		event = event.Err(err)
 	}
+	l.addFields(event, fields...)
+	event.Msg(msg)
+}
 
-	event.Msg("Error occurred")
+// With returns a new logger with additional fields
+func (l *ZerologLogger) With(fields map[string]interface{}) Logger {
+	ctx := l.logger.With()
+	for key, value := range fields {
+		ctx = ctx.Interface(key, value)
+	}
+	return &ZerologLogger{logger: ctx.Logger()}
+}
+
+// addFields adds fields to a zerolog event
+func (l *ZerologLogger) addFields(event *zerolog.Event, fields ...map[string]interface{}) {
+	for _, fieldMap := range fields {
+		for key, value := range fieldMap {
+			event.Interface(key, value)
+		}
+	}
 }
 
 // LogStartup logs service startup information
 func LogStartup(serviceName string, version string, port int) {
-	Logger.Info().
+	GlobalLogger.Info().
 		Str("service", serviceName).
 		Str("version", version).
 		Int("port", port).
@@ -91,7 +140,7 @@ func LogStartup(serviceName string, version string, port int) {
 
 // LogShutdown logs service shutdown information
 func LogShutdown(serviceName string, reason string) {
-	Logger.Info().
+	GlobalLogger.Info().
 		Str("service", serviceName).
 		Str("reason", reason).
 		Msg("Service shutting down")
