@@ -6,9 +6,8 @@ import (
 	"net"
 
 	"github.com/EliasRanz/ai-code-gen/internal/config"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/validation"
 	http_iface "github.com/EliasRanz/ai-code-gen/internal/interfaces/http"
+	"github.com/EliasRanz/ai-code-gen/internal/observability"
 	"github.com/EliasRanz/ai-code-gen/internal/user"
 	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 	"github.com/EliasRanz/ai-code-gen/internal/utilities/database"
@@ -24,6 +23,25 @@ func (n *dummyNotifier) NotifyUserCreated(ctx context.Context, user *user.User) 
 func (n *dummyNotifier) NotifyUserUpdated(ctx context.Context, user *user.User) error { return nil }
 func (n *dummyNotifier) NotifyUserDeleted(ctx context.Context, userID utilities.UserID) error {
 	return nil
+}
+
+// userValidator implements the user.Validator interface using observability validation
+type userValidator struct {
+	validator *observability.Validator
+}
+
+func newUserValidator() *userValidator {
+	return &userValidator{
+		validator: observability.NewValidator(),
+	}
+}
+
+func (v *userValidator) ValidateStruct(s interface{}) error {
+	return v.validator.ValidateStruct(s)
+}
+
+func (v *userValidator) ValidateUser(user *user.User) error {
+	return v.validator.ValidateStruct(user)
 }
 
 func main() {
@@ -62,7 +80,7 @@ func main() {
 	}
 
 	// Initialize validator and notifier
-	validator := validation.NewValidator()
+	validator := newUserValidator()
 	notifier := &dummyNotifier{}
 
 	// Initialize user service (business logic services)

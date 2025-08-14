@@ -11,7 +11,7 @@ import (
 
 	"github.com/EliasRanz/ai-code-gen/internal/ai"
 	"github.com/EliasRanz/ai-code-gen/internal/auth"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
+	"github.com/EliasRanz/ai-code-gen/internal/observability"
 	"github.com/EliasRanz/ai-code-gen/internal/user"
 	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )

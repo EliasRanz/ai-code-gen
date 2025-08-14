@@ -112,6 +112,11 @@ func (v *StandardConfigValidator) validateRule(rule ValidationRule, data ConfigD
 
 // validateType validates the type of a configuration value
 func (v *StandardConfigValidator) validateType(key string, value interface{}, expectedType string) error {
+	// Handle nil values
+	if value == nil {
+		return fmt.Errorf("field '%s' is nil, expected %s", key, expectedType)
+	}
+
 	actualType := reflect.TypeOf(value).Kind()
 
 	switch expectedType {

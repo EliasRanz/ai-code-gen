@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -160,7 +161,7 @@ func (s *SecurityObserver) IsSecurityError(err error) bool {
 	}
 
 	for _, keyword := range securityKeywords {
-		if len(errorMsg) >= len(keyword) && errorMsg[:len(keyword)] == keyword {
+		if strings.Contains(errorMsg, keyword) {
 			return true
 		}
 	}
