@@ -1,0 +1,35 @@
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "poll": 250,
+  "launch_browser": true,
+  "notifications": true,
+  "cover": true,
+  "depth": 10,
+  "timeout": "30s",
+  "excludedDirs": [
+    "vendor",
+    "node_modules",
+    ".git",
+    "bin",
+    "tmp",
+    "build",
+    "dist"
+  ],
+  "includedSuffixes": [
+    ".go"
+  ],
+  "excludedSuffixes": [
+    "_generated.go",
+    ".pb.go"
+  ],
+  "testDirs": [
+    "tests",
+    "internal"
+  ],
+  "coverageOptions": {
+    "mode": "atomic",
+    "packages": "./internal/...",
+    "threshold": 50.0
+  }
+}
