@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/EliasRanz/ai-code-gen/internal/ai"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
+	"github.com/EliasRanz/ai-code-gen/internal/observability"
 	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
