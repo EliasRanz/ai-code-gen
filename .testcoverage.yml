@@ -1,0 +1,51 @@
+# Test coverage configuration for go-test-coverage tool
+
+# (mandatory) 
+# Path to coverprofile file (output of `go test -coverprofile` command).
+profile: coverage.out
+
+# (optional) 
+# When specified reported file paths will not contain local prefix in the output
+local-prefix: "github.com/EliasRanz/ai-code-gen"
+
+# Holds coverage reporting thresholds
+threshold:
+  # (optional; default 0) 
+  # The minimum coverage that each file should have
+  file: 60
+
+  # (optional; default 0) 
+  # The minimum coverage that each package should have
+  package: 70
+
+  # (optional; default 0) 
+  # The minimum total coverage project should have
+  total: 75
+
+# Holds regexp rules which will override thresholds for matched files or packages
+override:
+  # Path to the file or package to override
+  - threshold: 0
+    path: ^github\.com/EliasRanz/ai-code-gen/internal/interfaces
+  - threshold: 0  
+    path: ^github\.com/EliasRanz/ai-code-gen/cmd
+  - threshold: 50
+    path: ^github\.com/EliasRanz/ai-code-gen/internal/gateway
+  - threshold: 40
+    path: ^github\.com/EliasRanz/ai-code-gen/internal/auth
+  - threshold: 40
+    path: ^github\.com/EliasRanz/ai-code-gen/internal/user
+
+# Holds regexp rules which will exclude files or packages from coverage reporting
+exclude:
+  # Exclude file paths by regexp patterns
+  paths:
+    - \.pb\.go$                    # Protocol buffer generated files
+    - _generated\.go$              # Generated files
+    - /mock.*\.go$                 # Mock files
+    - /testdata/                   # Test data directories
+  
+  # Exclude packages by regexp patterns  
+  packages:
+    - github\.com/EliasRanz/ai-code-gen/tests/.*
+    - github\.com/EliasRanz/ai-code-gen/tools/.*

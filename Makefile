@@ -38,6 +38,36 @@ test: ## Run all tests
 	@echo "Running frontend tests..."
 	cd web && npm test
 
+test-enhanced: ## Run tests with enhanced discovery and reporting
+	@echo "🚀 Running tests with enhanced discovery..."
+	@./scripts/enhanced-testing.sh test
+
+test-coverage: ## Generate accurate coverage reports (excluding generated files)
+	@echo "📊 Generating accurate coverage reports..."
+	@./scripts/coverage.sh
+
+test-discover: ## Analyze test discovery and structure
+	@echo "🔍 Analyzing test discovery..."
+	@./scripts/enhanced-testing.sh discover
+
+test-analyze: ## Analyze package-level coverage
+	@echo "🔍 Analyzing package coverage..."
+	@./scripts/enhanced-testing.sh analyze
+
+test-visual: ## Generate visual coverage reports and open browser
+	@echo "🎨 Generating visual coverage reports..."
+	@./scripts/enhanced-testing.sh all
+	@echo "Opening coverage reports..."
+	@command -v xdg-open >/dev/null && xdg-open coverage.html || echo "Open coverage.html in your browser"
+
+install-test-tools: ## Install enhanced testing tools
+	@echo "📦 Installing enhanced testing tools..."
+	@./scripts/enhanced-testing.sh install || echo "⚠️  Some tools failed to install due to Go version requirements"
+
+test-basic: ## Run tests with built-in Go tools only
+	@echo "🧪 Running tests with built-in tools..."
+	@./scripts/basic-testing.sh
+
 test-unit: ## Run unit tests only
 	@echo "Running unit tests..."
 	go test -v ./tests/unit/...

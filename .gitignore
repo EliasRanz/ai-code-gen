@@ -199,3 +199,8 @@ temp/
 **.test
 
 performance_reports/**
+coverage-treemap.svg
+coverage.html
+coverage.json
+tests-report.xml
+*.out
