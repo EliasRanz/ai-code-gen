@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	appAuth "github.com/EliasRanz/ai-code-gen/internal/auth"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
 	httpInterface "github.com/EliasRanz/ai-code-gen/internal/interfaces/http"
+	"github.com/EliasRanz/ai-code-gen/internal/observability"
 )
 
 // Mock implementations for integration testing

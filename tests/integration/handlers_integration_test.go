@@ -9,8 +9,8 @@ import (
 	"github.com/EliasRanz/ai-code-gen/internal/ai"
 	"github.com/EliasRanz/ai-code-gen/internal/auth"
 	"github.com/EliasRanz/ai-code-gen/internal/gateway"
+	"github.com/EliasRanz/ai-code-gen/internal/observability"
 	"github.com/EliasRanz/ai-code-gen/internal/user"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
 )
 
 // mockLogger is a simple mock logger for testing
@@ -155,7 +155,7 @@ func TestHandlersValidation(t *testing.T) {
 
 			// Validate all handlers
 			err := router.ValidateHandlers()
-			
+
 			// Should have validation errors due to nil services
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "validation failed")

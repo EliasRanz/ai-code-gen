@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/EliasRanz/ai-code-gen/internal/auth"
-	"github.com/EliasRanz/ai-code-gen/internal/infrastructure/observability"
+	"github.com/EliasRanz/ai-code-gen/internal/observability"
 	authtest "github.com/EliasRanz/ai-code-gen/tests/unit/auth"
 )
 
