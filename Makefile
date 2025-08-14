@@ -70,7 +70,7 @@ test-basic: ## Run tests with built-in Go tools only
 
 test-unit: ## Run unit tests only
 	@echo "Running unit tests..."
-	go test -v ./tests/unit/... -json | tparse
+	go test ./tests/unit/...
 
 test-integration: ## Run integration tests with local environment
 	@echo "🔧 Running integration tests (local environment)..."
