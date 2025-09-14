@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // YamlProvider loads configuration from YAML files
