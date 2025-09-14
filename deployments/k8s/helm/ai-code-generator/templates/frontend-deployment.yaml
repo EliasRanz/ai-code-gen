@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-code-generator.fullname" . }}-frontend
+  labels:
+    app.kubernetes.io/name: {{ include "ai-code-generator.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ai-code-generator.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ai-code-generator.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://{{ include "ai-code-generator.fullname" . }}-api-gateway"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          {{- toYaml .Values.frontend.resources | nindent 12 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-code-generator.fullname" . }}-frontend
+  labels:
+    app.kubernetes.io/name: {{ include "ai-code-generator.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  type: {{ .Values.frontend.service.type }}
+  ports:
+  - port: {{ .Values.frontend.service.port }}
+    targetPort: {{ .Values.frontend.service.targetPort }}
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: {{ include "ai-code-generator.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: frontend

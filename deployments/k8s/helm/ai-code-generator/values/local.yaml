@@ -1,0 +1,115 @@
+# Local development values
+# This file contains overrides for local development environment
+
+# Reduce resource requirements for local development
+apiGateway:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+authService:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+userService:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+aiService:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+aiGenerationService:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+frontend:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Local ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: ai-code-generator.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: api-gateway
+            port:
+              number: 80
+        - path: /api
+          pathType: Prefix
+          service:
+            name: api-gateway
+            port:
+              number: 80
+
+# Disable external dependencies for local development
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "password"
+    database: "ai_ui_generator"
+  primary:
+    persistence:
+      enabled: false  # Use emptyDir for local dev
+
+redis:
+  enabled: true
+  auth:
+    password: "password"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  persistence:
+    enabled: false  # Use emptyDir for local dev
+
+# Development configuration
+global:
+  environment: "development"
+
+# Disable monitoring for local development to keep it lightweight
+monitoring:
+  enabled: false

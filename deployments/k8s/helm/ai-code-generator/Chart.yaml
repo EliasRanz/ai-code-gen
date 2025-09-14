@@ -1,0 +1,29 @@
+apiVersion: v2
+name: ai-code-generator
+description: A Helm chart for AI Code Generator microservices
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - ai
+  - microservices
+  - kubernetes
+  - golang
+
+maintainers:
+  - name: AI Code Generator Team
+
+dependencies:
+  - name: postgresql
+    version: "12.1.6"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: prometheus
+    version: "15.x.x"
+    repository: "https://prometheus-community.github.io/helm-charts"
+    condition: monitoring.enabled
+  - name: grafana
+    version: "6.x.x"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: monitoring.enabled

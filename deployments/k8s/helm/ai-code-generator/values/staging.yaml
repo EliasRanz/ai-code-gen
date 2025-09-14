@@ -1,0 +1,120 @@
+# Staging environment values
+# This file contains overrides for staging environment
+
+# Higher replica counts for staging
+apiGateway:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+authService:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+userService:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+aiService:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+aiGenerationService:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+frontend:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Staging ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: staging.ai-code-generator.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: api-gateway
+            port:
+              number: 80
+        - path: /api
+          pathType: Prefix
+          service:
+            name: api-gateway
+            port:
+              number: 80
+  tls:
+    - secretName: ai-code-generator-tls
+      hosts:
+        - staging.ai-code-generator.com
+
+# External PostgreSQL for staging
+postgresql:
+  enabled: false  # Use external PostgreSQL
+
+# External Redis for staging
+redis:
+  enabled: false  # Use external Redis
+
+# Staging configuration
+global:
+  environment: "staging"
+
+# Enable monitoring for staging with moderate resources
+monitoring:
+  enabled: true
+  prometheus:
+    server:
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: 200m
+        limits:
+          memory: 1Gi
+          cpu: 1000m
+  grafana:
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 200m
+      limits:
+        memory: 1Gi
+        cpu: 1000m

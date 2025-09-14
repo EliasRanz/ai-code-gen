@@ -1,0 +1,153 @@
+# Production environment values
+# This file contains overrides for production environment
+
+# Production-ready replica counts and resources
+apiGateway:
+  replicaCount: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+authService:
+  replicaCount: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+userService:
+  replicaCount: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+aiService:
+  replicaCount: 3
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+aiGenerationService:
+  replicaCount: 3
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+
+frontend:
+  replicaCount: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+# Production ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: ai-code-generator.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: api-gateway
+            port:
+              number: 80
+        - path: /api
+          pathType: Prefix
+          service:
+            name: api-gateway
+            port:
+              number: 80
+  tls:
+    - secretName: ai-code-generator-tls
+      hosts:
+        - ai-code-generator.com
+
+# External PostgreSQL for production
+postgresql:
+  enabled: false  # Use external PostgreSQL
+
+# External Redis for production
+redis:
+  enabled: false  # Use external Redis
+
+# Production configuration
+global:
+  environment: "production"
+
+# Enable full monitoring for production with high availability
+monitoring:
+  enabled: true
+  prometheus:
+    server:
+      replicaCount: 2
+      resources:
+        requests:
+          memory: 1Gi
+          cpu: 500m
+        limits:
+          memory: 2Gi
+          cpu: 2000m
+      retention: "90d"
+  grafana:
+    replicaCount: 2
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 500m
+      limits:
+        memory: 2Gi
+        cpu: 2000m
+  serviceMonitor:
+    interval: 15s
+    scrapeTimeout: 5s
+  prometheusRule:
+    enabled: true
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate in production"
+          description: "Error rate is {{ $value }}%"
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service is down"
+          description: "Service {{ $labels.job }} is not responding"
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High request latency"
+          description: "95th percentile latency is {{ $value }}s"

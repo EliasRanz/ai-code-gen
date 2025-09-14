@@ -1,0 +1,290 @@
+# Default values for ai-code-generator
+# This file contains the default configuration for all environments
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# PostgreSQL dependency configuration
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "password"
+    database: "ai_ui_generator"
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+
+# Redis configuration (custom deployment with sidecar exporter)
+redis:
+  enabled: true
+  auth:
+    password: "password"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  persistence:
+    enabled: true
+    size: 8Gi
+
+# API Gateway service
+apiGateway:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ai-code-generator/api-gateway
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  config:
+    environment: "development"
+    logLevel: "info"
+
+# Auth Service
+authService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ai-code-generator/auth-service
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8081
+    targetPort: 8081
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  config:
+    environment: "development"
+    logLevel: "info"
+
+# User Service
+userService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ai-code-generator/user-service
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8082
+    targetPort: 8082
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  config:
+    environment: "development"
+    logLevel: "info"
+
+# AI Service
+aiService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ai-code-generator/ai-service
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8083
+    targetPort: 8083
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  config:
+    environment: "development"
+    logLevel: "info"
+
+# AI Generation Service
+aiGenerationService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ai-code-generator/ai-generation-service
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8084
+    targetPort: 8084
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  config:
+    environment: "development"
+    logLevel: "info"
+
+# Frontend
+frontend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ai-code-generator/frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: ai-code-generator.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: api-gateway
+            port:
+              number: 80
+        - path: /api
+          pathType: Prefix
+          service:
+            name: api-gateway
+            port:
+              number: 80
+  tls: []
+
+# Monitoring
+monitoring:
+  enabled: true
+
+  # Prometheus configuration
+  prometheus:
+    enabled: true
+    server:
+      persistentVolume:
+        enabled: true
+        size: 8Gi
+      retention: "30d"
+      resources:
+        requests:
+          memory: 256Mi
+          cpu: 100m
+        limits:
+          memory: 512Mi
+          cpu: 500m
+    service:
+      type: ClusterIP
+      port: 80
+
+  # Grafana configuration
+  grafana:
+    enabled: true
+    adminPassword: "admin"
+    persistence:
+      enabled: true
+      size: 8Gi
+    service:
+      type: ClusterIP
+      port: 80
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 500m
+
+  # ServiceMonitor for Prometheus
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+
+  # PrometheusRule for alerting
+  prometheusRule:
+    enabled: true
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }}%"
+
+      - alert: PodRestart
+        expr: increase(kube_pod_container_status_restarts_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod restarted"
+          description: "Pod {{ $labels.pod }} restarted {{ $value }} times"
+
+  # Grafana dashboards
+  dashboards:
+    enabled: true
+    configMaps:
+      - name: ai-code-generator-dashboard
+        labels:
+          grafana_dashboard: "1"
+        data:
+          ai-dashboard.json: |
+            {
+              "dashboard": {
+                "title": "AI Code Generator Overview",
+                "tags": ["ai", "microservices"],
+                "timezone": "browser",
+                "panels": [
+                  {
+                    "title": "Request Rate",
+                    "type": "graph",
+                    "targets": [
+                      {
+                        "expr": "rate(http_requests_total[5m])",
+                        "legendFormat": "{{ service }}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }

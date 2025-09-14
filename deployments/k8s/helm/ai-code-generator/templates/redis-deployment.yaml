@@ -1,0 +1,166 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-code-generator.fullname" . }}-redis
+  labels:
+    {{- include "ai-code-generator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ai-code-generator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        {{- include "ai-code-generator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: redis
+    spec:
+      containers:
+        # Redis main container
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-code-generator.redis.secretName" . }}
+                  key: redis-password
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+
+        # Redis Exporter sidecar
+        - name: redis-exporter
+          image: oliver006/redis_exporter:latest
+          ports:
+            - name: metrics
+              containerPort: 9121
+              protocol: TCP
+          env:
+            - name: REDIS_ADDR
+              value: "localhost:6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-code-generator.redis.secretName" . }}
+                  key: redis-password
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 9121
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 9121
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+
+      volumes:
+        - name: redis-data
+          {{- if .Values.redis.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "ai-code-generator.fullname" . }}-redis
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-code-generator.fullname" . }}-redis
+  labels:
+    {{- include "ai-code-generator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  type: ClusterIP
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+  selector:
+    {{- include "ai-code-generator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-code-generator.fullname" . }}-redis-exporter
+  labels:
+    {{- include "ai-code-generator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis-exporter
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9121
+      targetPort: 9121
+      protocol: TCP
+  selector:
+    {{- include "ai-code-generator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+
+{{- if .Values.redis.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ai-code-generator.fullname" . }}-redis
+  labels:
+    {{- include "ai-code-generator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.redis.persistence.size }}
+  {{- if .Values.global.storageClass }}
+  storageClassName: {{ .Values.global.storageClass }}
+  {{- end }}
+{{- end }}

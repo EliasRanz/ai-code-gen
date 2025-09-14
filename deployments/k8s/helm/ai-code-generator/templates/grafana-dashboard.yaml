@@ -1,0 +1,15 @@
+{{- if .Values.monitoring.enabled }}
+{{- if .Values.monitoring.dashboards.enabled }}
+{{- range .Values.monitoring.dashboards.configMaps }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-code-generator.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "ai-code-generator.labels" $ | nindent 4 }}
+    {{- toYaml .labels | nindent 4 }}
+data:
+  {{- toYaml .data | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}
