@@ -1,3 +1,5 @@
+// +build integration
+
 package integration
 
 import (
@@ -5,18 +7,21 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"go.uber.org/mock/gomock"
 
 	"github.com/EliasRanz/ai-code-gen/internal/auth"
 	"github.com/EliasRanz/ai-code-gen/internal/observability"
-	authtest "github.com/EliasRanz/ai-code-gen/tests/unit/auth"
+	"github.com/EliasRanz/ai-code-gen/tests/mocks"
 )
 
 func TestCheckRoleIntegration(t *testing.T) {
 	t.Run("end-to-end role check success", func(t *testing.T) {
-		// Setup
-		logger := observability.NewLogger("debug", "console")
-		userRepo := new(authtest.MockUserRepository)
+		// Setup gomock controller
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		// Create mock user repository
+		userRepo := mocks.NewMockAuthUserRepository(ctrl)
 
 		// Create use case with real dependencies
 		checkRoleUC := auth.NewCheckRole(userRepo)
@@ -31,7 +36,8 @@ func TestCheckRoleIntegration(t *testing.T) {
 			Active:   true,
 		}
 
-		userRepo.On("GetByID", mock.Anything, auth.UserID("test-user-id")).Return(userData, nil)
+		// Setup mock expectations
+		userRepo.EXPECT().GetByID(gomock.Any(), auth.UserID("test-user-id")).Return(userData, nil)
 
 		// Execute the use case directly (simulating end-to-end flow)
 		req := auth.CheckRoleRequest{
@@ -48,18 +54,21 @@ func TestCheckRoleIntegration(t *testing.T) {
 		assert.Equal(t, []string{"admin", "editor"}, resp.UserRoles)
 		assert.Empty(t, resp.Reason)
 
+		// Log completion
+		logger := observability.NewLogger("debug", "console")
 		logger.Info("Integration test completed", map[string]interface{}{
 			"test":       "check_role_success",
 			"authorized": resp.Authorized,
 		})
-
-		userRepo.AssertExpectations(t)
 	})
 
 	t.Run("end-to-end role check failure", func(t *testing.T) {
-		// Setup
-		logger := observability.NewLogger("debug", "console")
-		userRepo := new(authtest.MockUserRepository)
+		// Setup gomock controller
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		// Create mock user repository
+		userRepo := mocks.NewMockAuthUserRepository(ctrl)
 
 		// Create use case with real dependencies
 		checkRoleUC := auth.NewCheckRole(userRepo)
@@ -74,7 +83,8 @@ func TestCheckRoleIntegration(t *testing.T) {
 			Active:   true,
 		}
 
-		userRepo.On("GetByID", mock.Anything, auth.UserID("test-user-id")).Return(userData, nil)
+		// Setup mock expectations
+		userRepo.EXPECT().GetByID(gomock.Any(), auth.UserID("test-user-id")).Return(userData, nil)
 
 		// Execute the use case directly (simulating end-to-end flow)
 		req := auth.CheckRoleRequest{
@@ -91,11 +101,11 @@ func TestCheckRoleIntegration(t *testing.T) {
 		assert.Equal(t, []string{"viewer"}, resp.UserRoles)
 		assert.Equal(t, "user does not have required role: admin", resp.Reason)
 
+		// Log completion
+		logger := observability.NewLogger("debug", "console")
 		logger.Info("Integration test completed", map[string]interface{}{
 			"test":       "check_role_failure",
 			"authorized": resp.Authorized,
 		})
-
-		userRepo.AssertExpectations(t)
 	})
 }

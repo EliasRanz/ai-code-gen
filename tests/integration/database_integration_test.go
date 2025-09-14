@@ -1,21 +1,19 @@
+//go:build integration
+// +build integration
+
 package tests
 
 import (
-"context"
-"os"
-"testing"
+	"context"
+	"testing"
 
-"github.com/EliasRanz/ai-code-gen/internal/database"
-"github.com/stretchr/testify/require"
+	"github.com/EliasRanz/ai-code-gen/internal/database"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDatabaseIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration tests in short mode")
-	}
-	
-	if os.Getenv("INTEGRATION_TESTS") == "" {
-		t.Skip("Skipping integration tests. Set INTEGRATION_TESTS=1 to run.")
 	}
 
 	// Load configuration from environment

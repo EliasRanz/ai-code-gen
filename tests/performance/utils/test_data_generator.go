@@ -21,8 +21,8 @@ type TestDataGenerator struct {
 
 // TestToken represents a test authentication token with expected cache behavior
 type TestToken struct {
-	Hash        string
-	UserContext *cache.UserContext
+	Hash           string
+	UserContext    *cache.UserContext
 	HitProbability float64 // Probability this token will be a cache hit
 }
 
@@ -30,11 +30,11 @@ type TestToken struct {
 type LoadTestScenario struct {
 	Name          string
 	Description   string
-	RequestRate   int           // Requests per second
+	RequestRate   int // Requests per second
 	Duration      time.Duration
-	CacheHitRatio float64       // Expected cache hit ratio (0.0 to 1.0)
-	UserPattern   string        // "uniform", "normal", "zipf" - distribution of user requests
-	Concurrency   int           // Number of concurrent workers
+	CacheHitRatio float64 // Expected cache hit ratio (0.0 to 1.0)
+	UserPattern   string  // "uniform", "normal", "zipf" - distribution of user requests
+	Concurrency   int     // Number of concurrent workers
 }
 
 // NewTestDataGenerator creates a new test data generator
@@ -49,7 +49,7 @@ func NewTestDataGenerator(userCount, tokensPerUser int) *TestDataGenerator {
 // GenerateTestTokens creates a set of test tokens with realistic distributions
 func (tdg *TestDataGenerator) GenerateTestTokens() []TestToken {
 	tokens := make([]TestToken, 0, tdg.UserCount*tdg.TokensPerUser)
-	
+
 	for userID := 0; userID < tdg.UserCount; userID++ {
 		for tokenID := 0; tokenID < tdg.TokensPerUser; tokenID++ {
 			token := TestToken{
@@ -64,18 +64,18 @@ func (tdg *TestDataGenerator) GenerateTestTokens() []TestToken {
 			tokens = append(tokens, token)
 		}
 	}
-	
+
 	return tokens
 }
 
 // GenerateRealisticTokens creates tokens that follow real-world usage patterns
 func (tdg *TestDataGenerator) GenerateRealisticTokens() []TestToken {
 	tokens := make([]TestToken, 0, tdg.UserCount*tdg.TokensPerUser)
-	
+
 	// 80/20 rule: 20% of users generate 80% of requests
 	heavyUsers := int(float64(tdg.UserCount) * 0.2)
 	lightUsers := tdg.UserCount - heavyUsers
-	
+
 	// Heavy users (high hit probability)
 	for userID := 0; userID < heavyUsers; userID++ {
 		for tokenID := 0; tokenID < tdg.TokensPerUser*4; tokenID++ { // More tokens for heavy users
@@ -90,7 +90,7 @@ func (tdg *TestDataGenerator) GenerateRealisticTokens() []TestToken {
 			})
 		}
 	}
-	
+
 	// Light users (lower hit probability)
 	for userID := 0; userID < lightUsers; userID++ {
 		tokens = append(tokens, TestToken{
@@ -103,7 +103,7 @@ func (tdg *TestDataGenerator) GenerateRealisticTokens() []TestToken {
 			HitProbability: 0.20 + (0.30 * mathrand.Float64()), // 20-50% hit rate
 		})
 	}
-	
+
 	return tokens
 }
 
@@ -185,7 +185,7 @@ func (tdg *TestDataGenerator) SelectTokenForRequest(tokens []TestToken, pattern 
 func (tdg *TestDataGenerator) generateTokenHash(userID, tokenID int) string {
 	// Generate a hash similar to what cache.HashToken would produce
 	_ = fmt.Sprintf("jwt-token-user-%d-session-%d-%d", userID, tokenID, time.Now().UnixNano())
-	
+
 	// Create SHA256-like hash
 	bytes := make([]byte, 32)
 	rand.Read(bytes)
@@ -195,34 +195,34 @@ func (tdg *TestDataGenerator) generateTokenHash(userID, tokenID int) string {
 // selectRandomRole picks a random role with weighted distribution
 func (tdg *TestDataGenerator) selectRandomRole() string {
 	weights := []float64{0.70, 0.15, 0.08, 0.05, 0.02} // user, admin, moderator, premium, basic
-	
+
 	r := mathrand.Float64()
 	cumulative := 0.0
-	
+
 	for i, weight := range weights {
 		cumulative += weight
 		if r <= cumulative {
 			return tdg.Roles[i]
 		}
 	}
-	
+
 	return tdg.Roles[0] // fallback to "user"
 }
 
 // selectWeightedRole picks roles for heavy users (more likely to be premium/admin)
 func (tdg *TestDataGenerator) selectWeightedRole() string {
 	weights := []float64{0.40, 0.25, 0.15, 0.15, 0.05} // Different distribution for heavy users
-	
+
 	r := mathrand.Float64()
 	cumulative := 0.0
-	
+
 	for i, weight := range weights {
 		cumulative += weight
 		if r <= cumulative {
 			return tdg.Roles[i]
 		}
 	}
-	
+
 	return tdg.Roles[0]
 }
 
@@ -230,10 +230,10 @@ func (tdg *TestDataGenerator) selectWeightedRole() string {
 func (tdg *TestDataGenerator) calculateHitProbability(userID, tokenID int) float64 {
 	// Recent tokens are more likely to be cache hits
 	recencyFactor := math.Max(0.1, 1.0-float64(tokenID)/float64(tdg.TokensPerUser))
-	
+
 	// Some users are more active (higher base hit rate)
 	userFactor := 0.5 + 0.4*mathrand.Float64()
-	
+
 	return math.Min(0.95, recencyFactor*userFactor)
 }
 
@@ -251,11 +251,11 @@ func (tdg *TestDataGenerator) selectNormalDistributionToken(tokens []TestToken) 
 		sum += mathrand.Float64()
 	}
 	normalized := (sum - 6.0) / 6.0 // Mean=0, roughly stddev=1
-	
+
 	// Map to token index
 	center := len(tokens) / 2
 	index := center + int(normalized*float64(len(tokens))/6)
-	
+
 	// Clamp to valid range
 	if index < 0 {
 		index = 0
@@ -263,7 +263,7 @@ func (tdg *TestDataGenerator) selectNormalDistributionToken(tokens []TestToken) 
 	if index >= len(tokens) {
 		index = len(tokens) - 1
 	}
-	
+
 	return tokens[index]
 }
 
@@ -271,7 +271,7 @@ func (tdg *TestDataGenerator) selectNormalDistributionToken(tokens []TestToken) 
 func (tdg *TestDataGenerator) selectZipfToken(tokens []TestToken) TestToken {
 	// Simple Zipf approximation: 80% of requests go to first 20% of tokens
 	r := mathrand.Float64()
-	
+
 	var index int
 	if r < 0.8 {
 		// 80% of requests go to first 20% of tokens
@@ -284,6 +284,6 @@ func (tdg *TestDataGenerator) selectZipfToken(tokens []TestToken) TestToken {
 		n, _ := rand.Int(rand.Reader, big.NewInt(int64(remaining)))
 		index = (len(tokens) / 5) + int(n.Int64())
 	}
-	
+
 	return tokens[index]
 }

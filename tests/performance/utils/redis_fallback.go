@@ -15,22 +15,22 @@ import (
 func TryExistingRedis() (*cache.AuthCache, bool) {
 	// Check common Redis URLs
 	redisURLs := []string{
-		"redis://localhost:6380",  // Docker compose Redis port
-		"redis://localhost:6379",  // Default Redis port
-		os.Getenv("REDIS_URL"),    // Environment variable
+		"redis://localhost:6380", // Docker compose Redis port
+		"redis://localhost:6379", // Default Redis port
+		os.Getenv("REDIS_URL"),   // Environment variable
 	}
-	
+
 	for _, redisURL := range redisURLs {
 		if redisURL == "" {
 			continue
 		}
-		
+
 		// Try to connect to Redis
 		authCache, err := cache.NewAuthCache(redisURL, 1*time.Minute)
 		if err != nil {
 			continue
 		}
-		
+
 		// Test the connection
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		if err := authCache.HealthCheck(ctx); err == nil {
@@ -40,7 +40,7 @@ func TryExistingRedis() (*cache.AuthCache, bool) {
 		cancel()
 		authCache.Close()
 	}
-	
+
 	return nil, false
 }
 
@@ -50,7 +50,7 @@ func SetupRedisWithFallback(testingInterface interface{}) (*cache.AuthCache, fun
 	if authCache, ok := TryExistingRedis(); ok {
 		return authCache, func() { authCache.Close() }, nil
 	}
-	
+
 	// Fall back to container setup
 	switch t := testingInterface.(type) {
 	case *testing.T:

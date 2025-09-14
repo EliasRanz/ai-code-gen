@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/EliasRanz/ai-code-gen/internal/user"
 	"github.com/EliasRanz/ai-code-gen/internal/observability"
+	"github.com/EliasRanz/ai-code-gen/internal/user"
 )
 
 // mockLogger is a simple mock logger for testing

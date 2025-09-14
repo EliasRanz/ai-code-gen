@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 // TestHelper provides common test utilities

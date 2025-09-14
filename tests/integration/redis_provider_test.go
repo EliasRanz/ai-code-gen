@@ -1,4 +1,7 @@
-package cache_test
+//go:build integration
+// +build integration
+
+package tests_test
 
 import (
 	"context"
@@ -19,7 +22,7 @@ func TestRedisProvider(t *testing.T) {
 	t.Run("creation and configuration", func(t *testing.T) {
 		t.Run("valid config creates provider", func(t *testing.T) {
 			config := cache.CacheConfig{
-				Host:                   "localhost",
+				Host:                   getEnvOrDefault("REDIS_HOST", "localhost"),
 				Port:                   6379,
 				DB:                     0,
 				MaxConnections:         10,
@@ -363,7 +366,7 @@ func TestRedisProviderEdgeCases(t *testing.T) {
 
 func getTestRedisConfig() cache.CacheConfig {
 	return cache.CacheConfig{
-		Host:                   "localhost",
+		Host:                   getEnvOrDefault("REDIS_HOST", "localhost"),
 		Port:                   6379,
 		DB:                     0,
 		Password:               "",

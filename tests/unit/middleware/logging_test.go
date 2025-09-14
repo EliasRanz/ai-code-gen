@@ -1,4 +1,4 @@
-package middleware
+package middleware_test
 
 import (
 	"net/http"
@@ -146,7 +146,7 @@ func TestErrorHandlerMiddleware(t *testing.T) {
 
 	router := gin.New()
 	router.Use(gateway.ErrorHandler())
-	
+
 	// Route that triggers a bind error
 	router.POST("/bind-error", func(c *gin.Context) {
 		var data struct {

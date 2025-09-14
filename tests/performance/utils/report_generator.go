@@ -71,11 +71,11 @@ func (g *PerformanceReportGenerator) GenerateCSVReport() ([]byte, error) {
 // GenerateJSONReport creates a JSON report of all performance test results
 func (g *PerformanceReportGenerator) GenerateJSONReport() ([]byte, error) {
 	summary := PerformanceTestSummary{
-		GeneratedAt:   time.Now(),
-		TotalTests:    len(g.reports),
-		TestResults:   g.reports,
-		Summary:       g.calculateSummary(),
-		Trends:        g.calculateTrends(),
+		GeneratedAt:     time.Now(),
+		TotalTests:      len(g.reports),
+		TestResults:     g.reports,
+		Summary:         g.calculateSummary(),
+		Trends:          g.calculateTrends(),
 		Recommendations: g.generateRecommendations(),
 	}
 
@@ -333,11 +333,11 @@ func (g *PerformanceReportGenerator) calculateSummary() PerformanceSummary {
 
 	count := float64(len(g.reports))
 	return PerformanceSummary{
-		TotalTests:       len(g.reports),
-		AvgThroughput:    totalThroughput / count,
-		AvgCacheHitRate:  totalCacheHitRate / count,
-		AvgErrorRate:     totalErrorRate / count,
-		AvgP95Latency:    time.Duration(int64(totalP95Latency) / int64(count)),
+		TotalTests:      len(g.reports),
+		AvgThroughput:   totalThroughput / count,
+		AvgCacheHitRate: totalCacheHitRate / count,
+		AvgErrorRate:    totalErrorRate / count,
+		AvgP95Latency:   time.Duration(int64(totalP95Latency) / int64(count)),
 	}
 }
 
@@ -371,11 +371,11 @@ func (g *PerformanceReportGenerator) calculateTrends() []TrendAnalysis {
 		last := reports[len(reports)-1]
 
 		trend := TrendAnalysis{
-			TestName:           testName,
-			ThroughputTrend:    calculateTrend(first.ThroughputRPS, last.ThroughputRPS),
-			LatencyTrend:       calculateLatencyTrend(first.Percentiles.P95, last.Percentiles.P95),
-			CacheHitRateTrend:  calculateTrend(first.CacheHitRate, last.CacheHitRate),
-			ErrorRateTrend:     calculateTrend(first.ErrorRate, last.ErrorRate),
+			TestName:          testName,
+			ThroughputTrend:   calculateTrend(first.ThroughputRPS, last.ThroughputRPS),
+			LatencyTrend:      calculateLatencyTrend(first.Percentiles.P95, last.Percentiles.P95),
+			CacheHitRateTrend: calculateTrend(first.CacheHitRate, last.CacheHitRate),
+			ErrorRateTrend:    calculateTrend(first.ErrorRate, last.ErrorRate),
 		}
 
 		trends = append(trends, trend)
@@ -391,41 +391,41 @@ func (g *PerformanceReportGenerator) generateRecommendations() []string {
 
 	// Throughput recommendations
 	if summary.AvgThroughput < 500 {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"Consider optimizing cache hit ratio - current throughput is below target (500 req/s)")
 	}
 
 	// Latency recommendations
 	if summary.AvgP95Latency > 10*time.Millisecond {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"P95 latency is high - consider Redis connection pooling optimization")
 	}
 
 	// Cache hit rate recommendations
 	if summary.AvgCacheHitRate < 0.80 {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"Cache hit rate is below 80% - review cache TTL settings and data access patterns")
 	}
 
 	// Error rate recommendations
 	if summary.AvgErrorRate > 0.01 {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"Error rate is above 1% - investigate Redis connectivity and timeout settings")
 	}
 
 	// Memory usage recommendations
 	avgMemory := g.calculateAvgMemoryUsage()
 	if avgMemory > 100 {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"High memory usage detected - consider implementing cache eviction policies")
 	}
 
 	// General recommendations
-	recommendations = append(recommendations, 
+	recommendations = append(recommendations,
 		"Monitor cache performance continuously in production")
-	recommendations = append(recommendations, 
+	recommendations = append(recommendations,
 		"Consider implementing circuit breaker pattern for Redis failures")
-	recommendations = append(recommendations, 
+	recommendations = append(recommendations,
 		"Set up alerts for cache hit rate drops below 75%")
 
 	return recommendations

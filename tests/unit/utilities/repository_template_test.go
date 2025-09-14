@@ -1,4 +1,5 @@
-package database
+// Package database_test contains tests for database utilities
+package database_test
 
 import (
 	"context"

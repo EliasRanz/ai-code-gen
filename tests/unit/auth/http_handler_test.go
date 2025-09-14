@@ -1,5 +1,5 @@
-// Package authtest_test provides unit tests for auth HTTP handler
-package authtest_test
+// Package auth_test provides unit tests for auth HTTP handler
+package auth_test
 
 import (
 	"bytes"

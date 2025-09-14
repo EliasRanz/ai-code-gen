@@ -1,4 +1,4 @@
-package utilities_entity_factory
+package utilities_entity_factory_test
 
 import (
 	"testing"

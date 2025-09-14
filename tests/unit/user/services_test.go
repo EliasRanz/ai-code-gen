@@ -1,4 +1,4 @@
-package user
+package user_test
 
 import (
 	"testing"
@@ -9,8 +9,8 @@ import (
 	"github.com/EliasRanz/ai-code-gen/internal/utilities"
 )
 
-// TestUserEntity tests the User entity methods
-func TestUserEntity(t *testing.T) {
+// TestUserEntityMethods tests the User entity methods
+func TestUserEntityMethods(t *testing.T) {
 	t.Run("IsAdmin should return true for admin role", func(t *testing.T) {
 		u := user.User{
 			ID:   utilities.UserID("test-id"),

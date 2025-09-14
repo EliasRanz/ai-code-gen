@@ -1,21 +1,21 @@
 package cache_test
 
 import (
-"context"
-"testing"
-"time"
+	"context"
+	"testing"
+	"time"
 
-"github.com/EliasRanz/ai-code-gen/tests/mocks"
-"github.com/stretchr/testify/assert"
-"go.uber.org/mock/gomock"
+	"github.com/EliasRanz/ai-code-gen/tests/mocks"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 // TestInterfaceSegregation validates our interface segregation improvements using generated mocks
 // This replaces manual mocks with generated ones following testing.instructions.md
 func TestInterfaceSegregation(t *testing.T) {
 	t.Run("BasicCacheOperations", func(t *testing.T) {
-ctrl := gomock.NewController(t)
-defer ctrl.Finish()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		mockOps := mocks.NewMockBasicCacheOperations(ctrl)
 		ctx := context.Background()
@@ -48,8 +48,8 @@ defer ctrl.Finish()
 	})
 
 	t.Run("InterfaceComposition", func(t *testing.T) {
-ctrl := gomock.NewController(t)
-defer ctrl.Finish()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
 		// Test that our interface segregation works with generated mocks
 		// Each interface can be mocked independently

@@ -1,4 +1,4 @@
-package utilities_entity_interfaces
+package utilities_entity_interfaces_test
 
 import (
 	"encoding/json"

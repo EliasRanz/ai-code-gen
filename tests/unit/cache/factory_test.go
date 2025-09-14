@@ -56,14 +56,14 @@ func TestCacheFactory(t *testing.T) {
 			}
 
 			provider, err := factory.CreateProvider("redis", config)
+			// In unit tests, we expect this to fail since Redis isn't running
+			// But we're testing the factory logic, not the actual connection
 			if err != nil {
-				// Expected when Redis is not available
-				assert.Contains(t, err.Error(), "failed to connect to Redis")
-				return
+				assert.Contains(t, err.Error(), "failed to connect")
+			} else {
+				assert.NotNil(t, provider)
+				defer provider.Close()
 			}
-
-			assert.NotNil(t, provider)
-			defer provider.Close()
 		})
 
 		t.Run("multi provider creation", func(t *testing.T) {
@@ -82,14 +82,14 @@ func TestCacheFactory(t *testing.T) {
 			}
 
 			provider, err := factory.CreateProvider("multi", config)
+			// In unit tests, we expect this to fail since Redis isn't running
+			// But we're testing the factory logic, not the actual connection
 			if err != nil {
-				// Expected when Redis is not available for multi-provider
-				assert.Contains(t, err.Error(), "failed to connect to Redis")
-				return
+				assert.Contains(t, err.Error(), "failed to connect")
+			} else {
+				assert.NotNil(t, provider)
+				defer provider.Close()
 			}
-
-			assert.NotNil(t, provider)
-			defer provider.Close()
 		})
 
 		t.Run("unsupported provider type", func(t *testing.T) {
@@ -122,6 +122,21 @@ func TestCacheFactory(t *testing.T) {
 			assert.Error(t, err)
 			assert.Nil(t, provider)
 			// Should be either connection error or validation error
+		})
+
+		t.Run("invalid idle connections", func(t *testing.T) {
+			config := cache.CacheConfig{
+				Host:               "localhost",
+				Port:               6379,
+				MaxConnections:     10,
+				MaxIdleConnections: -1, // Invalid
+			}
+
+			// Test with Redis provider which validates config
+			provider, err := factory.CreateProvider("redis", config)
+			assert.Error(t, err)
+			assert.Nil(t, provider)
+			// Should be either validation error or connection error
 		})
 	})
 

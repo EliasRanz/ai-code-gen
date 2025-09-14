@@ -1,4 +1,4 @@
-package cache
+package cache_test
 
 import (
 	"context"
@@ -138,7 +138,7 @@ func TestMemoryProvider(t *testing.T) {
 
 // TestCircuitBreaker tests the circuit breaker implementation
 // for cache resilience
-func TestCircuitBreaker(t *testing.T) {
+func TestCacheCircuitBreaker(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Circuit Breaker States", func(t *testing.T) {

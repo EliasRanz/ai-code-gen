@@ -1,4 +1,4 @@
-package utilities_service
+package utilities_service_test
 
 import (
 	"fmt"

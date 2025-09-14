@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 // Package tests_test provides integration tests for HTTP handlers
 package tests_test
 

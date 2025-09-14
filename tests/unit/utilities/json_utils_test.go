@@ -1,5 +1,5 @@
-// Package database contains tests for database infrastructure implementations
-package database
+// Package database_test contains tests for database utilities
+package database_test
 
 import (
 	"encoding/json"
@@ -25,7 +25,7 @@ func jsonToStringSlice(jsonStr string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	result := make([]string, len(raw))
 	for i, v := range raw {
 		str, ok := v.(string)
@@ -87,10 +87,10 @@ func TestStringSliceToJSON(t *testing.T) {
 // TestJSONToStringSlice tests the jsonToStringSlice function
 func TestJSONToStringSlice(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         string
-		expected      []string
-		expectError   bool
+		name        string
+		input       string
+		expected    []string
+		expectError bool
 	}{
 		{
 			name:        "empty array",

@@ -1,10 +1,10 @@
-package database
+package database_test
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/EliasRanz/ai-code-gen/internal/database"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfig(t *testing.T) {

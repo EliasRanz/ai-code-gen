@@ -1,4 +1,4 @@
-package ai
+package ai_test
 
 import (
 	"context"

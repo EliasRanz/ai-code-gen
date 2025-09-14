@@ -1,4 +1,4 @@
-package utilities_repository_template
+package utilities_repository_template_test
 
 import (
 	"context"

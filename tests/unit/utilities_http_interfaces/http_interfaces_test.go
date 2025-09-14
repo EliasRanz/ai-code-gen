@@ -1,4 +1,4 @@
-package utilities_http_interfaces
+package utilities_http_interfaces_test
 
 import (
 	"bytes"

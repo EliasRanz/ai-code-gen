@@ -1,9 +1,11 @@
+//go:build integration
+// +build integration
+
 package tests
 
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -16,10 +18,6 @@ import (
 func TestRedisIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration tests in short mode")
-	}
-
-	if os.Getenv("INTEGRATION_TESTS") == "" {
-		t.Skip("Skipping integration tests. Set INTEGRATION_TESTS=1 to run.")
 	}
 
 	// Load configuration from environment

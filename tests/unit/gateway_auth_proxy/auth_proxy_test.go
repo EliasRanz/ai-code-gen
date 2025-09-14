@@ -1,4 +1,4 @@
-package gateway_auth_proxy
+package gateway_auth_proxy_test
 
 import (
 	"encoding/json"

@@ -12,15 +12,15 @@ type SLAThresholds struct {
 	P95Latency  time.Duration `json:"p95_latency"`
 	P99Latency  time.Duration `json:"p99_latency"`
 	P999Latency time.Duration `json:"p999_latency"`
-	
+
 	// Performance thresholds
 	MinThroughputRPS float64 `json:"min_throughput_rps"`
 	MinCacheHitRate  float64 `json:"min_cache_hit_rate"`
 	MaxErrorRate     float64 `json:"max_error_rate"`
-	
+
 	// Resource thresholds
 	MaxMemoryUsageMB float64 `json:"max_memory_usage_mb"`
-	
+
 	// Labels for reporting
 	ScenarioName string `json:"scenario_name"`
 	Environment  string `json:"environment"` // "production", "staging", "development"
@@ -50,11 +50,11 @@ func (s SLALevel) String() string {
 
 // SLAViolation represents a specific SLA violation
 type SLAViolation struct {
-	Metric    string    `json:"metric"`
-	Expected  string    `json:"expected"`
-	Actual    string    `json:"actual"`
-	Level     SLALevel  `json:"level"`
-	Message   string    `json:"message"`
+	Metric   string   `json:"metric"`
+	Expected string   `json:"expected"`
+	Actual   string   `json:"actual"`
+	Level    SLALevel `json:"level"`
+	Message  string   `json:"message"`
 }
 
 // SLAValidationResult contains the complete SLA validation results
@@ -74,26 +74,26 @@ func DefaultSLAConfigurations() map[string]SLAThresholds {
 			P99Latency:       15 * time.Millisecond,
 			P999Latency:      35 * time.Millisecond,
 			MinThroughputRPS: 500,
-			MinCacheHitRate:  0.85, // 85%
+			MinCacheHitRate:  0.85,  // 85%
 			MaxErrorRate:     0.001, // 0.1%
 			MaxMemoryUsageMB: 100,
 			ScenarioName:     "Production Baseline",
 			Environment:      "production",
 		},
-		
+
 		"production_peak": {
 			P50Latency:       2 * time.Millisecond,
 			P95Latency:       10 * time.Millisecond,
 			P99Latency:       25 * time.Millisecond,
 			P999Latency:      50 * time.Millisecond,
 			MinThroughputRPS: 1000,
-			MinCacheHitRate:  0.80, // 80%
+			MinCacheHitRate:  0.80,  // 80%
 			MaxErrorRate:     0.005, // 0.5%
 			MaxMemoryUsageMB: 150,
 			ScenarioName:     "Production Peak Traffic",
 			Environment:      "production",
 		},
-		
+
 		"production_burst": {
 			P50Latency:       3 * time.Millisecond,
 			P95Latency:       20 * time.Millisecond,
@@ -106,7 +106,7 @@ func DefaultSLAConfigurations() map[string]SLAThresholds {
 			ScenarioName:     "Production Burst Load",
 			Environment:      "production",
 		},
-		
+
 		// Staging environment - moderate SLAs
 		"staging_baseline": {
 			P50Latency:       2 * time.Millisecond,
@@ -120,7 +120,7 @@ func DefaultSLAConfigurations() map[string]SLAThresholds {
 			ScenarioName:     "Staging Baseline",
 			Environment:      "staging",
 		},
-		
+
 		// Development environment - relaxed SLAs
 		"development_baseline": {
 			P50Latency:       5 * time.Millisecond,
@@ -134,7 +134,7 @@ func DefaultSLAConfigurations() map[string]SLAThresholds {
 			ScenarioName:     "Development Baseline",
 			Environment:      "development",
 		},
-		
+
 		// Special scenarios
 		"cache_warmup": {
 			P50Latency:       5 * time.Millisecond,
@@ -148,7 +148,7 @@ func DefaultSLAConfigurations() map[string]SLAThresholds {
 			ScenarioName:     "Cache Warmup",
 			Environment:      "production",
 		},
-		
+
 		"stress_test": {
 			P50Latency:       10 * time.Millisecond,
 			P95Latency:       50 * time.Millisecond,
@@ -168,11 +168,11 @@ func DefaultSLAConfigurations() map[string]SLAThresholds {
 func ValidatePerformanceReport(report PerformanceReport, thresholds SLAThresholds) SLAValidationResult {
 	violations := []SLAViolation{}
 	overallStatus := SLAPass
-	
+
 	// Validate P95 Latency (most critical metric)
 	if report.Percentiles.P95 > thresholds.P95Latency {
 		level := determineSeverity(
-			float64(report.Percentiles.P95), 
+			float64(report.Percentiles.P95),
 			float64(thresholds.P95Latency),
 			1.2, // 20% tolerance for WARN
 			1.5, // 50% tolerance for FAIL
@@ -188,11 +188,11 @@ func ValidatePerformanceReport(report PerformanceReport, thresholds SLAThreshold
 			overallStatus = level
 		}
 	}
-	
+
 	// Validate P99 Latency
 	if report.Percentiles.P99 > thresholds.P99Latency {
 		level := determineSeverity(
-			float64(report.Percentiles.P99), 
+			float64(report.Percentiles.P99),
 			float64(thresholds.P99Latency),
 			1.3, // 30% tolerance for WARN
 			2.0, // 100% tolerance for FAIL
@@ -208,7 +208,7 @@ func ValidatePerformanceReport(report PerformanceReport, thresholds SLAThreshold
 			overallStatus = level
 		}
 	}
-	
+
 	// Validate Throughput
 	if report.ThroughputRPS < thresholds.MinThroughputRPS {
 		level := determineSeverity(
@@ -228,7 +228,7 @@ func ValidatePerformanceReport(report PerformanceReport, thresholds SLAThreshold
 			overallStatus = level
 		}
 	}
-	
+
 	// Validate Cache Hit Rate
 	if report.CacheHitRate < thresholds.MinCacheHitRate {
 		level := determineSeverity(
@@ -248,7 +248,7 @@ func ValidatePerformanceReport(report PerformanceReport, thresholds SLAThreshold
 			overallStatus = level
 		}
 	}
-	
+
 	// Validate Error Rate
 	if report.ErrorRate > thresholds.MaxErrorRate {
 		level := determineSeverity(
@@ -268,7 +268,7 @@ func ValidatePerformanceReport(report PerformanceReport, thresholds SLAThreshold
 			overallStatus = level
 		}
 	}
-	
+
 	// Validate Memory Usage
 	if report.MemoryUsageMB > thresholds.MaxMemoryUsageMB {
 		level := determineSeverity(
@@ -288,10 +288,10 @@ func ValidatePerformanceReport(report PerformanceReport, thresholds SLAThreshold
 			overallStatus = level
 		}
 	}
-	
+
 	// Generate summary
 	summary := generateSLASummary(overallStatus, violations, thresholds)
-	
+
 	return SLAValidationResult{
 		OverallStatus: overallStatus,
 		Violations:    violations,
@@ -304,7 +304,7 @@ func determineSeverity(actual, threshold, warnTolerance, failTolerance float64) 
 	if actual <= threshold {
 		return SLAPass
 	}
-	
+
 	ratio := actual / threshold
 	if ratio <= warnTolerance {
 		return SLAPass
@@ -318,10 +318,10 @@ func determineSeverity(actual, threshold, warnTolerance, failTolerance float64) 
 // generateSLASummary creates a human-readable summary of SLA validation
 func generateSLASummary(status SLALevel, violations []SLAViolation, thresholds SLAThresholds) string {
 	if len(violations) == 0 {
-		return fmt.Sprintf("✅ All SLAs met for %s (%s environment)", 
+		return fmt.Sprintf("✅ All SLAs met for %s (%s environment)",
 			thresholds.ScenarioName, thresholds.Environment)
 	}
-	
+
 	failCount := 0
 	warnCount := 0
 	for _, v := range violations {
@@ -332,13 +332,13 @@ func generateSLASummary(status SLALevel, violations []SLAViolation, thresholds S
 			warnCount++
 		}
 	}
-	
+
 	switch status {
 	case SLAWarn:
-		return fmt.Sprintf("⚠️ SLA warnings detected for %s: %d warnings out of %d metrics", 
+		return fmt.Sprintf("⚠️ SLA warnings detected for %s: %d warnings out of %d metrics",
 			thresholds.ScenarioName, warnCount, len(violations))
 	case SLAFail:
-		return fmt.Sprintf("❌ SLA failures detected for %s: %d failures, %d warnings out of %d metrics", 
+		return fmt.Sprintf("❌ SLA failures detected for %s: %d failures, %d warnings out of %d metrics",
 			thresholds.ScenarioName, failCount, warnCount, len(violations))
 	default:
 		return fmt.Sprintf("✅ All SLAs met for %s", thresholds.ScenarioName)
@@ -348,20 +348,20 @@ func generateSLASummary(status SLALevel, violations []SLAViolation, thresholds S
 // GetSLAForScenario returns appropriate SLA thresholds for a test scenario
 func GetSLAForScenario(scenarioName, environment string) SLAThresholds {
 	configs := DefaultSLAConfigurations()
-	
+
 	// Try exact match first
 	key := fmt.Sprintf("%s_%s", environment, scenarioName)
 	if config, exists := configs[key]; exists {
 		return config
 	}
-	
+
 	// Try scenario-specific matches
 	for configKey, config := range configs {
 		if config.ScenarioName == scenarioName || configKey == scenarioName {
 			return config
 		}
 	}
-	
+
 	// Fallback to environment default
 	switch environment {
 	case "production":
@@ -378,12 +378,12 @@ func GetSLAForScenario(scenarioName, environment string) SLAThresholds {
 // SLARecommendations provides optimization recommendations based on violations
 func SLARecommendations(violations []SLAViolation) []string {
 	recommendations := []string{}
-	
+
 	hasLatencyIssues := false
 	hasThroughputIssues := false
 	hasCacheIssues := false
 	hasErrorIssues := false
-	
+
 	for _, v := range violations {
 		switch v.Metric {
 		case "P95 Latency", "P99 Latency":
@@ -396,34 +396,34 @@ func SLARecommendations(violations []SLAViolation) []string {
 			hasErrorIssues = true
 		}
 	}
-	
+
 	if hasLatencyIssues {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"🚀 Optimize Redis connection pooling and consider Redis cluster for better latency",
 			"⚡ Review Redis configuration (memory policy, persistence settings)",
 			"🔍 Analyze slow queries and optimize data structures")
 	}
-	
+
 	if hasThroughputIssues {
 		recommendations = append(recommendations,
 			"📈 Scale Redis horizontally with read replicas",
 			"🔧 Optimize connection pool size and concurrent connections",
 			"⚖️ Consider load balancing across multiple Redis instances")
 	}
-	
+
 	if hasCacheIssues {
 		recommendations = append(recommendations,
 			"🎯 Review cache TTL settings and eviction policies",
 			"📊 Analyze access patterns and implement cache warming strategies",
 			"🔄 Consider implementing cache preloading for hot data")
 	}
-	
+
 	if hasErrorIssues {
 		recommendations = append(recommendations,
 			"🛡️ Implement circuit breaker pattern for Redis failures",
 			"🔍 Monitor Redis health and connection stability",
 			"⚠️ Add fallback mechanisms for auth validation")
 	}
-	
+
 	return recommendations
 }

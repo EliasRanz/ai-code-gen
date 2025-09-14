@@ -47,7 +47,7 @@ func (pts *PerformanceTestSuite) RunAllTests() error {
 			testFunc:    pts.runBenchmarkTests,
 		},
 		{
-			name:        "Load Tests", 
+			name:        "Load Tests",
 			description: "Vegeta-based load testing with realistic traffic patterns",
 			testFunc:    pts.runLoadTests,
 		},
@@ -67,17 +67,17 @@ func (pts *PerformanceTestSuite) RunAllTests() error {
 	for _, scenario := range testScenarios {
 		fmt.Printf("\n📊 Running %s...\n", scenario.name)
 		fmt.Printf("   %s\n", scenario.description)
-		
+
 		start := time.Now()
 		report, err := scenario.testFunc()
 		duration := time.Since(start)
-		
+
 		if err != nil {
 			fmt.Printf("   ❌ FAILED: %v\n", err)
 			allPassed = false
 			continue
 		}
-		
+
 		if report != nil {
 			pts.reportGenerator.AddReport(*report)
 			pts.printScenarioResults(scenario.name, report, duration)
@@ -109,9 +109,9 @@ func (pts *PerformanceTestSuite) RunAllTests() error {
 func (pts *PerformanceTestSuite) runBenchmarkTests() (*utils.PerformanceReport, error) {
 	// Simulate benchmark test execution and create a sample report
 	// In real implementation, this would run: go test -bench=. ./tests/performance/auth_cache/
-	
+
 	metrics := utils.NewPerformanceMetrics()
-	
+
 	// Simulate benchmark results
 	for i := 0; i < 10000; i++ {
 		if i%5 == 0 {
@@ -120,7 +120,7 @@ func (pts *PerformanceTestSuite) runBenchmarkTests() (*utils.PerformanceReport, 
 			metrics.RecordCacheHit(500 * time.Microsecond)
 		}
 	}
-	
+
 	report := metrics.GenerateReport("Benchmark Tests")
 	return &report, nil
 }
@@ -129,9 +129,9 @@ func (pts *PerformanceTestSuite) runBenchmarkTests() (*utils.PerformanceReport, 
 func (pts *PerformanceTestSuite) runLoadTests() (*utils.PerformanceReport, error) {
 	// This would run the actual load tests from load_test.go
 	// For demo purposes, we'll simulate realistic load test results
-	
+
 	metrics := utils.NewPerformanceMetrics()
-	
+
 	// Simulate load test with realistic patterns
 	for i := 0; i < 50000; i++ {
 		if i%4 == 0 { // 25% cache miss rate
@@ -139,13 +139,13 @@ func (pts *PerformanceTestSuite) runLoadTests() (*utils.PerformanceReport, error
 		} else {
 			metrics.RecordCacheHit(800 * time.Microsecond)
 		}
-		
+
 		// Simulate occasional errors
 		if i%1000 == 0 {
 			metrics.RecordCacheError(5 * time.Millisecond)
 		}
 	}
-	
+
 	time.Sleep(100 * time.Millisecond) // Simulate test duration
 	report := metrics.GenerateReport("Load Tests")
 	return &report, nil
@@ -154,7 +154,7 @@ func (pts *PerformanceTestSuite) runLoadTests() (*utils.PerformanceReport, error
 // runStressTests executes stress tests
 func (pts *PerformanceTestSuite) runStressTests() (*utils.PerformanceReport, error) {
 	metrics := utils.NewPerformanceMetrics()
-	
+
 	// Simulate stress test with higher latencies and more errors
 	for i := 0; i < 30000; i++ {
 		if i%3 == 0 { // 33% cache miss rate under stress
@@ -162,13 +162,13 @@ func (pts *PerformanceTestSuite) runStressTests() (*utils.PerformanceReport, err
 		} else {
 			metrics.RecordCacheHit(2 * time.Millisecond)
 		}
-		
+
 		// More errors under stress
 		if i%500 == 0 {
 			metrics.RecordCacheError(15 * time.Millisecond)
 		}
 	}
-	
+
 	time.Sleep(150 * time.Millisecond) // Simulate test duration
 	report := metrics.GenerateReport("Stress Tests")
 	return &report, nil
@@ -177,19 +177,19 @@ func (pts *PerformanceTestSuite) runStressTests() (*utils.PerformanceReport, err
 // runWarmupTests executes cache warmup tests
 func (pts *PerformanceTestSuite) runWarmupTests() (*utils.PerformanceReport, error) {
 	metrics := utils.NewPerformanceMetrics()
-	
+
 	// Simulate warmup scenario with improving hit rates
 	for i := 0; i < 20000; i++ {
 		// Hit rate improves over time during warmup
 		hitRate := float64(i) / 20000.0 * 0.8 // Gradually improve to 80%
-		
+
 		if float64(i%100)/100.0 > hitRate {
 			metrics.RecordCacheMiss(4 * time.Millisecond)
 		} else {
 			metrics.RecordCacheHit(1 * time.Millisecond)
 		}
 	}
-	
+
 	time.Sleep(80 * time.Millisecond) // Simulate test duration
 	report := metrics.GenerateReport("Cache Warmup Tests")
 	return &report, nil
@@ -202,12 +202,12 @@ func (pts *PerformanceTestSuite) printScenarioResults(scenarioName string, repor
 		"WARN": "⚠️",
 		"FAIL": "❌",
 	}
-	
+
 	icon := statusIcon[report.Status]
 	if icon == "" {
 		icon = "❓"
 	}
-	
+
 	fmt.Printf("   %s %s (%s)\n", icon, report.Status, duration.Round(time.Millisecond))
 	fmt.Printf("   📈 Throughput: %.1f req/s\n", report.ThroughputRPS)
 	fmt.Printf("   🎯 Cache Hit Rate: %.1f%%\n", report.CacheHitRate*100)
@@ -223,36 +223,36 @@ func (pts *PerformanceTestSuite) generateReports() error {
 		return err
 	}
 	defer htmlFile.Close()
-	
+
 	if err := pts.reportGenerator.WriteTo(htmlFile, "html"); err != nil {
 		return fmt.Errorf("failed to generate HTML report: %w", err)
 	}
 	fmt.Printf("   📄 HTML report: %s\n", htmlFile.Name())
-	
+
 	// Generate JSON report
 	jsonFile, err := os.Create(filepath.Join(pts.outputDir, "performance_report.json"))
 	if err != nil {
 		return err
 	}
 	defer jsonFile.Close()
-	
+
 	if err := pts.reportGenerator.WriteTo(jsonFile, "json"); err != nil {
 		return fmt.Errorf("failed to generate JSON report: %w", err)
 	}
 	fmt.Printf("   📄 JSON report: %s\n", jsonFile.Name())
-	
+
 	// Generate CSV report
 	csvFile, err := os.Create(filepath.Join(pts.outputDir, "performance_report.csv"))
 	if err != nil {
 		return err
 	}
 	defer csvFile.Close()
-	
+
 	if err := pts.reportGenerator.WriteTo(csvFile, "csv"); err != nil {
 		return fmt.Errorf("failed to generate CSV report: %w", err)
 	}
 	fmt.Printf("   📄 CSV report: %s\n", csvFile.Name())
-	
+
 	return nil
 }
 
@@ -262,7 +262,7 @@ func main() {
 	if len(os.Args) > 1 {
 		outputDir = os.Args[1]
 	}
-	
+
 	// Create and run test suite
 	suite := NewPerformanceTestSuite(outputDir)
 	if err := suite.RunAllTests(); err != nil {
@@ -274,19 +274,19 @@ func main() {
 func TestMain(m *testing.M) {
 	// Run the actual tests
 	code := m.Run()
-	
+
 	// If tests passed, also run our performance suite
 	if code == 0 {
 		fmt.Println("\n" + strings.Repeat("=", 60))
 		fmt.Println("Running Performance Test Suite...")
 		fmt.Println(strings.Repeat("=", 60))
-		
+
 		suite := NewPerformanceTestSuite("./test_reports")
 		if err := suite.RunAllTests(); err != nil {
 			fmt.Printf("Performance test suite failed: %v\n", err)
 			os.Exit(1)
 		}
 	}
-	
+
 	os.Exit(code)
 }

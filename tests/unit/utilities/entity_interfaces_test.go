@@ -1,5 +1,5 @@
 // Tests for entity interface pattern and factory implementations
-package database
+package database_test
 
 import (
 	"testing"

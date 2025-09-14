@@ -1,4 +1,4 @@
-package gateway_observers
+package gateway_observers_test
 
 import (
 	"context"

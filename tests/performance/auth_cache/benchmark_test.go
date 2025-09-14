@@ -208,7 +208,7 @@ func TestCachePerformanceRegression(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance regression test in short mode")
 	}
-	
+
 	// Skip performance tests by default unless explicitly enabled
 	if !isPerformanceTestingEnabled() {
 		t.Skip("Skipping performance test - set PERFORMANCE_TESTS=1 to enable")

@@ -12,66 +12,66 @@ import (
 
 // PerformanceMetrics tracks comprehensive performance data
 type PerformanceMetrics struct {
-	CacheHits       *metrics.Counter
-	CacheMisses     *metrics.Counter
-	CacheErrors     *metrics.Counter
+	CacheHits        *metrics.Counter
+	CacheMisses      *metrics.Counter
+	CacheErrors      *metrics.Counter
 	AuthServiceCalls *metrics.Counter
-	TotalRequests   *metrics.Counter
+	TotalRequests    *metrics.Counter
 
 	// Latency tracking
 	ResponseTimes   []time.Duration
 	responseTimesMu sync.RWMutex
 
 	// Real-time metrics
-	CacheLatency    *metrics.Summary
-	ThroughputRPS   *metrics.Summary
-	ErrorRate       *metrics.Summary
+	CacheLatency  *metrics.Summary
+	ThroughputRPS *metrics.Summary
+	ErrorRate     *metrics.Summary
 
-	startTime       time.Time
+	startTime time.Time
 }
 
 // PerformancePercentiles holds statistical analysis results
 type PerformancePercentiles struct {
-	P50   time.Duration `json:"p50"`
-	P95   time.Duration `json:"p95"`
-	P99   time.Duration `json:"p99"`
-	P999  time.Duration `json:"p999"`
-	Mean  time.Duration `json:"mean"`
+	P50    time.Duration `json:"p50"`
+	P95    time.Duration `json:"p95"`
+	P99    time.Duration `json:"p99"`
+	P999   time.Duration `json:"p999"`
+	Mean   time.Duration `json:"mean"`
 	StdDev time.Duration `json:"stddev"`
-	Min   time.Duration `json:"min"`
-	Max   time.Duration `json:"max"`
+	Min    time.Duration `json:"min"`
+	Max    time.Duration `json:"max"`
 }
 
 // PerformanceReport contains comprehensive test results
 type PerformanceReport struct {
-	TestName        string                 `json:"test_name"`
-	Duration        time.Duration          `json:"duration"`
-	TotalRequests   int64                  `json:"total_requests"`
-	CacheHitRate    float64               `json:"cache_hit_rate"`
-	ErrorRate       float64               `json:"error_rate"`
-	ThroughputRPS   float64               `json:"throughput_rps"`
-	Percentiles     PerformancePercentiles `json:"percentiles"`
-	MemoryUsageMB   float64               `json:"memory_usage_mb"`
-	Timestamp       time.Time             `json:"timestamp"`
-	Status          string                `json:"status"` // PASS, WARN, FAIL
+	TestName      string                 `json:"test_name"`
+	Duration      time.Duration          `json:"duration"`
+	TotalRequests int64                  `json:"total_requests"`
+	CacheHitRate  float64                `json:"cache_hit_rate"`
+	ErrorRate     float64                `json:"error_rate"`
+	ThroughputRPS float64                `json:"throughput_rps"`
+	Percentiles   PerformancePercentiles `json:"percentiles"`
+	MemoryUsageMB float64                `json:"memory_usage_mb"`
+	Timestamp     time.Time              `json:"timestamp"`
+	Status        string                 `json:"status"` // PASS, WARN, FAIL
 }
 
 // NewPerformanceMetrics creates a new metrics collector with unique metric names
 func NewPerformanceMetrics() *PerformanceMetrics {
 	// Use timestamp to create unique metric names across test runs
 	suffix := fmt.Sprintf("_%d", time.Now().UnixNano())
-	
+
 	return &PerformanceMetrics{
-		CacheHits:       metrics.NewCounter("cache_hits_total" + suffix),
-		CacheMisses:     metrics.NewCounter("cache_misses_total" + suffix),
-		CacheErrors:     metrics.NewCounter("cache_errors_total" + suffix),
+		CacheHits:        metrics.NewCounter("cache_hits_total" + suffix),
+		CacheMisses:      metrics.NewCounter("cache_misses_total" + suffix),
+		CacheErrors:      metrics.NewCounter("cache_errors_total" + suffix),
 		AuthServiceCalls: metrics.NewCounter("auth_service_calls_total" + suffix),
-		TotalRequests:   metrics.NewCounter("total_requests" + suffix),
-		ResponseTimes:   make([]time.Duration, 0, 10000), // Pre-allocate for performance
-		CacheLatency:    metrics.NewSummary("cache_latency_seconds" + suffix),
-		ThroughputRPS:   metrics.NewSummary("throughput_requests_per_second" + suffix),
-		ErrorRate:       metrics.NewSummary("error_rate_percent" + suffix),
-		startTime:       time.Now(),
+		TotalRequests:    metrics.NewCounter("total_requests" + suffix),
+		ResponseTimes:    make([]time.Duration, 0, 10000), // Pre-allocate for performance
+		CacheLatency:     metrics.NewSummary("cache_latency_seconds" + suffix),
+		ThroughputRPS:    metrics.NewSummary("throughput_requests_per_second" + suffix),
+		ErrorRate:        metrics.NewSummary("error_rate_percent" + suffix),
+		startTime:        time.Now(),
 	}
 }
 
@@ -121,20 +121,20 @@ func (pm *PerformanceMetrics) CalculatePercentiles() PerformancePercentiles {
 	for i, d := range pm.ResponseTimes {
 		latencies[i] = d.Seconds()
 	}
-	
+
 	// Sort latencies for percentile calculations (required by gonum)
 	sort.Float64s(latencies)
 
 	// Calculate statistics using gonum
 	return PerformancePercentiles{
-		P50:   time.Duration(stat.Quantile(0.50, stat.Empirical, latencies, nil) * float64(time.Second)),
-		P95:   time.Duration(stat.Quantile(0.95, stat.Empirical, latencies, nil) * float64(time.Second)),
-		P99:   time.Duration(stat.Quantile(0.99, stat.Empirical, latencies, nil) * float64(time.Second)),
-		P999:  time.Duration(stat.Quantile(0.999, stat.Empirical, latencies, nil) * float64(time.Second)),
-		Mean:  time.Duration(stat.Mean(latencies, nil) * float64(time.Second)),
+		P50:    time.Duration(stat.Quantile(0.50, stat.Empirical, latencies, nil) * float64(time.Second)),
+		P95:    time.Duration(stat.Quantile(0.95, stat.Empirical, latencies, nil) * float64(time.Second)),
+		P99:    time.Duration(stat.Quantile(0.99, stat.Empirical, latencies, nil) * float64(time.Second)),
+		P999:   time.Duration(stat.Quantile(0.999, stat.Empirical, latencies, nil) * float64(time.Second)),
+		Mean:   time.Duration(stat.Mean(latencies, nil) * float64(time.Second)),
 		StdDev: time.Duration(stat.StdDev(latencies, nil) * float64(time.Second)),
-		Min:   pm.getMinLatency(),
-		Max:   pm.getMaxLatency(),
+		Min:    pm.getMinLatency(),
+		Max:    pm.getMaxLatency(),
 	}
 }
 
@@ -226,7 +226,7 @@ func (pm *PerformanceMetrics) getMaxLatency() time.Duration {
 func (pm *PerformanceMetrics) getMemoryUsage() float64 {
 	// In a real implementation, you'd use runtime.MemStats or similar
 	// For now, return estimated usage based on stored response times
-	estimatedBytes := len(pm.ResponseTimes) * 8 // 8 bytes per time.Duration
+	estimatedBytes := len(pm.ResponseTimes) * 8    // 8 bytes per time.Duration
 	return float64(estimatedBytes) / (1024 * 1024) // Convert to MB
 }
 

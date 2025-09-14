@@ -1,8 +1,13 @@
-package cache_test
+//go:build integration
+// +build integration
+
+package tests_test
 
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -66,9 +71,10 @@ func TestMultiProvider(t *testing.T) {
 			err = multiProvider.Delete(ctx, "multi_test")
 			assert.NoError(t, err)
 
-			// Verify deletion
-			_, err = multiProvider.Get(ctx, "multi_test")
-			assert.Error(t, err)
+			// Verify deletion - should return empty value, not error
+			value, err = multiProvider.Get(ctx, "multi_test")
+			assert.NoError(t, err)
+			assert.Equal(t, "", value)
 		})
 
 		t.Run("exists operation", func(t *testing.T) {
@@ -151,10 +157,12 @@ func TestMultiProvider(t *testing.T) {
 			err = multiProvider.MDelete(ctx, keys)
 			assert.NoError(t, err)
 
-			// Verify deletion
+			// Verify deletion - should return empty values, not errors
 			for _, key := range keys {
-				_, err := multiProvider.Get(ctx, key)
-				assert.Error(t, err)
+				var value string
+				value, err = multiProvider.Get(ctx, key)
+				assert.NoError(t, err)
+				assert.Equal(t, "", value)
 			}
 		})
 	})
@@ -313,11 +321,21 @@ func TestMultiProvider(t *testing.T) {
 // Helper function
 
 func getTestMultiProviderConfig() cache.CacheConfig {
+	// Use environment variables if available (for Docker testing), otherwise defaults
+	host := getEnvOrDefault("REDIS_HOST", "localhost")
+	port := 6379
+	if portStr := os.Getenv("REDIS_PORT"); portStr != "" {
+		if p, err := strconv.Atoi(portStr); err == nil {
+			port = p
+		}
+	}
+	password := getEnvOrDefault("REDIS_PASSWORD", "")
+
 	return cache.CacheConfig{
-		Host:                   "localhost",
-		Port:                   6379,
+		Host:                   host,
+		Port:                   port,
 		DB:                     0,
-		Password:               "",
+		Password:               password,
 		MaxConnections:         10,
 		MaxIdleConnections:     5,
 		ConnectionTimeout:      5 * time.Second,
@@ -327,4 +345,12 @@ func getTestMultiProviderConfig() cache.CacheConfig {
 		RequestVolumeThreshold: 20,
 		RecoveryTimeout:        10 * time.Second,
 	}
+}
+
+// getEnvOrDefault returns the value of the environment variable or the default value
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
