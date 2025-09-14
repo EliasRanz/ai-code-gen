@@ -177,17 +177,17 @@ func TestPasswordSecurityBestPractices(t *testing.T) {
 		password := "testPassword123!"
 		
 		// Hash the password
-		hashedPassword, err := hasher.HashPassword(password)
+		hashedPassword, err := hasher.Hash(password)
 		require.NoError(t, err)
 		assert.NotEmpty(t, hashedPassword)
 		assert.NotEqual(t, password, hashedPassword, "Hashed password should not equal plaintext")
 
 		// Verify the password
-		isValid := hasher.VerifyPassword(password, hashedPassword)
+		isValid := hasher.Verify(password, hashedPassword)
 		assert.True(t, isValid, "Password verification should succeed")
 
 		// Wrong password should fail
-		isValid = hasher.VerifyPassword("wrongPassword", hashedPassword)
+		isValid = hasher.Verify("wrongPassword", hashedPassword)
 		assert.False(t, isValid, "Wrong password should fail verification")
 	})
 
@@ -195,15 +195,15 @@ func TestPasswordSecurityBestPractices(t *testing.T) {
 		password := "testPassword123!"
 		
 		// Hash the same password multiple times - should produce different hashes (salt)
-		hash1, err1 := hasher.HashPassword(password)
-		hash2, err2 := hasher.HashPassword(password)
+		hash1, err1 := hasher.Hash(password)
+		hash2, err2 := hasher.Hash(password)
 		
 		require.NoError(t, err1)
 		require.NoError(t, err2)
 		assert.NotEqual(t, hash1, hash2, "Same password should produce different hashes due to salt")
 
 		// Both hashes should verify the same password
-		assert.True(t, hasher.VerifyPassword(password, hash1))
-		assert.True(t, hasher.VerifyPassword(password, hash2))
+		assert.True(t, hasher.Verify(password, hash1))
+		assert.True(t, hasher.Verify(password, hash2))
 	})
 }
