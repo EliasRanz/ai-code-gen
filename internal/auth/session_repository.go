@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"gorm.io/gorm"
 )
@@ -14,9 +15,12 @@ type PostgreSQLSessionRepository struct {
 
 // NewPostgreSQLSessionRepository creates a new PostgreSQL session repository
 func NewPostgreSQLSessionRepository(db *gorm.DB) (*PostgreSQLSessionRepository, error) {
-	// Auto-migrate the schema
-	if err := db.AutoMigrate(&Session{}); err != nil {
-		return nil, fmt.Errorf("failed to migrate session schema: %w", err)
+	// Skip auto-migration in CI environment (database is pre-initialized)
+	if os.Getenv("ENVIRONMENT") != "ci" {
+		// Auto-migrate the schema
+		if err := db.AutoMigrate(&Session{}); err != nil {
+			return nil, fmt.Errorf("failed to migrate session schema: %w", err)
+		}
 	}
 	return &PostgreSQLSessionRepository{db: db}, nil
 }

@@ -2,8 +2,8 @@ package database
 
 import (
 	"fmt"
-	"time"
 	"strings"
+	"time"
 )
 
 // generateUserID generates a unique user ID
@@ -18,7 +18,7 @@ func isUniqueViolation(err error) bool {
 		return false
 	}
 	errStr := strings.ToLower(err.Error())
-	return strings.Contains(errStr, "duplicate key") || 
-		   strings.Contains(errStr, "unique constraint") ||
-		   strings.Contains(errStr, "23505")
+	return strings.Contains(errStr, "duplicate key") ||
+		strings.Contains(errStr, "unique constraint") ||
+		strings.Contains(errStr, "23505")
 }

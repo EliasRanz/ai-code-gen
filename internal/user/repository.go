@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/EliasRanz/ai-code-gen/internal/utilities"
@@ -63,9 +64,12 @@ func NewPostgreSQLProjectRepository(db *gorm.DB) (ProjectRepository, error) {
 		return nil, fmt.Errorf("database connection is required")
 	}
 
-	// Auto-migrate the schema
-	if err := db.AutoMigrate(&ProjectModel{}); err != nil {
-		return nil, fmt.Errorf("failed to migrate project schema: %w", err)
+	// Skip auto-migration in CI environment (database is pre-initialized)
+	if os.Getenv("ENVIRONMENT") != "ci" {
+		// Auto-migrate the schema
+		if err := db.AutoMigrate(&ProjectModel{}); err != nil {
+			return nil, fmt.Errorf("failed to migrate project schema: %w", err)
+		}
 	}
 
 	logger := &utilities.ZerologAdapter{}

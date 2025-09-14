@@ -137,6 +137,8 @@ func (f *DefaultMiddlewareFactory) CreateMiddleware(middlewareType string, confi
 		return NewAuthProxyMiddleware(f.authServiceURL, f.authCache), nil
 	case "logging":
 		return NewLoggingMiddleware(), nil
+	case "metrics":
+		return NewMetricsMiddleware(), nil
 	case "rate-limit":
 		// Get parameters from config
 		params := config.GetParameters()

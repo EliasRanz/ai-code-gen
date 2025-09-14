@@ -4,6 +4,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -18,9 +19,12 @@ type AuthUserRepository struct {
 
 // NewAuthUserRepository creates a new auth-specific user repository
 func NewAuthUserRepository(db *gorm.DB) (*AuthUserRepository, error) {
-	// Auto-migrate the schema (using AuthUserModel for auth operations)
-	if err := db.AutoMigrate(&AuthUserModel{}); err != nil {
-		return nil, fmt.Errorf("failed to migrate schema: %w", err)
+	// Skip auto-migration in CI environment (database is pre-initialized)
+	if os.Getenv("ENVIRONMENT") != "ci" {
+		// Auto-migrate the schema (using AuthUserModel for auth operations)
+		if err := db.AutoMigrate(&AuthUserModel{}); err != nil {
+			return nil, fmt.Errorf("failed to migrate schema: %w", err)
+		}
 	}
 
 	return &AuthUserRepository{db: db}, nil

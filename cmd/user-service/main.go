@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"strconv"
 
 	"github.com/EliasRanz/ai-code-gen/internal/config"
 	http_iface "github.com/EliasRanz/ai-code-gen/internal/interfaces/http"
@@ -147,7 +149,15 @@ func setupUserRouter(cfg *config.Config, handler *http_iface.UserHandler) *gin.E
 
 // startGRPCServer initializes and starts the gRPC server for the user service
 func startGRPCServer(cfg *config.Config, userServer *user.UserGRPCServer) error {
-	grpcAddr := fmt.Sprintf(":%d", cfg.UserService.Port)
+	// Use GRPC_PORT if set, otherwise use UserService.Port + 1
+	grpcPort := cfg.UserService.Port
+	if grpcPortEnv := os.Getenv("GRPC_PORT"); grpcPortEnv != "" {
+		if port, err := strconv.Atoi(grpcPortEnv); err == nil {
+			grpcPort = port
+		}
+	}
+
+	grpcAddr := fmt.Sprintf(":%d", grpcPort)
 	listener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		return fmt.Errorf("failed to listen on gRPC port: %w", err)

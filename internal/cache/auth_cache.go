@@ -33,11 +33,11 @@ func NewAuthCache(redisURL string, ttl time.Duration) (*AuthCache, error) {
 	}
 
 	client := redis.NewClient(opt)
-	
+
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
@@ -51,7 +51,7 @@ func NewAuthCache(redisURL string, ttl time.Duration) (*AuthCache, error) {
 // GetUserContext retrieves cached user context by token hash
 func (ac *AuthCache) GetUserContext(ctx context.Context, tokenHash string) (*UserContext, error) {
 	key := ac.generateKey(tokenHash)
-	
+
 	data, err := ac.client.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -71,7 +71,7 @@ func (ac *AuthCache) GetUserContext(ctx context.Context, tokenHash string) (*Use
 // SetUserContext caches user context with TTL
 func (ac *AuthCache) SetUserContext(ctx context.Context, tokenHash string, userContext *UserContext) error {
 	userContext.CachedAt = time.Now()
-	
+
 	data, err := json.Marshal(userContext)
 	if err != nil {
 		return fmt.Errorf("failed to marshal user context: %w", err)

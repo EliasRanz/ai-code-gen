@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"time"
 
 	"github.com/EliasRanz/ai-code-gen/internal/cache"
 	"github.com/gin-gonic/gin"
@@ -80,8 +81,21 @@ func InvalidateUserCache(ctx context.Context, authCache *cache.AuthCache, token 
 // This is for backward compatibility with existing tests
 func MetricsMiddleware() gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
-		// Simple metrics middleware - just continue
+		start := time.Now()
+
+		// Get the metrics collector
+		metricsCollector := NewMetricsCollector()
+
+		// Increment request count
+		metricsCollector.IncrementRequestCount(c.Request.URL.Path, c.Request.Method)
+
+		// Process request
 		c.Next()
+
+		// Record latency and response code
+		duration := time.Since(start)
+		metricsCollector.RecordLatency(c.Request.URL.Path, duration)
+		metricsCollector.IncrementResponseCode(c.Writer.Status())
 	})
 }
 
@@ -104,7 +118,7 @@ func RequestID() gin.HandlerFunc {
 func ErrorHandler() gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
 		c.Next()
-		
+
 		// Handle any errors that occurred during processing
 		if len(c.Errors) > 0 {
 			// Find the most relevant error
@@ -117,7 +131,7 @@ func ErrorHandler() gin.HandlerFunc {
 					return
 				}
 			}
-			
+
 			// Handle other types of errors
 			err := c.Errors.Last()
 			if err.Type == gin.ErrorTypePublic {
@@ -141,18 +155,18 @@ func NewRateLimiter(rps rate.Limit, burst int) *CompatibleRateLimiter {
 }
 
 // CreateRateLimitMiddleware creates a Gin-compatible rate limiting middleware
-// This is for backward compatibility with existing tests  
+// This is for backward compatibility with existing tests
 func CreateRateLimitMiddleware(requestsPerSecond, burst int) gin.HandlerFunc {
 	middleware := NewRateLimitMiddleware(requestsPerSecond, burst)
-	
+
 	return func(c *gin.Context) {
 		ctx := WrapGinContext(c)
-		
+
 		next := func() error {
 			c.Next()
 			return nil
 		}
-		
+
 		if err := middleware.Process(ctx, next); err != nil {
 			c.AbortWithStatusJSON(429, gin.H{"error": "Rate limit exceeded"})
 			return
@@ -174,12 +188,12 @@ func (c *CompatibleRateLimiter) GetLimiter(clientID string) *rate.Limiter {
 func (c *CompatibleRateLimiter) RateLimit() gin.HandlerFunc {
 	return func(ginCtx *gin.Context) {
 		ctx := WrapGinContext(ginCtx)
-		
+
 		next := func() error {
 			ginCtx.Next()
 			return nil
 		}
-		
+
 		if err := c.Process(ctx, next); err != nil {
 			ginCtx.AbortWithStatusJSON(429, gin.H{"error": "Rate limit exceeded"})
 			return

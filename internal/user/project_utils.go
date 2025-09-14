@@ -1,8 +1,8 @@
 package user
 
 import (
-	"github.com/gin-gonic/gin"
 	pb "github.com/EliasRanz/ai-code-gen/api/proto/user"
+	"github.com/gin-gonic/gin"
 )
 
 // convertStatusStringToEnum converts a status string to protobuf enum
@@ -10,7 +10,7 @@ func convertStatusStringToEnum(statusStr string) pb.ProjectStatus {
 	if statusStr == "" {
 		return pb.ProjectStatus_PROJECT_STATUS_DRAFT
 	}
-	
+
 	switch statusStr {
 	case "draft":
 		return pb.ProjectStatus_PROJECT_STATUS_DRAFT

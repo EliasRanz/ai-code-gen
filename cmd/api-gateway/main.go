@@ -1,12 +1,22 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq" // PostgreSQL driver
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/expfmt"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
 	"github.com/EliasRanz/ai-code-gen/internal/cache"
@@ -34,7 +44,13 @@ func main() {
 	}
 
 	// Override port for this service
-	cfg.Server.Port = cfg.APIGateway.Port
+	if port := os.Getenv("PORT"); port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			cfg.Server.Port = p
+		}
+	} else {
+		cfg.Server.Port = cfg.APIGateway.Port
+	}
 
 	// Validate configuration
 	if err := cfg.Validate(); err != nil {
@@ -84,6 +100,7 @@ func setupRouter(cfg *config.Config) *gin.Engine {
 	// Setup consolidated middleware using our new gateway
 	middlewareConfigs := []gateway.MiddlewareConfig{
 		gateway.NewBasicMiddlewareConfig("logging", true, nil),
+		gateway.NewBasicMiddlewareConfig("metrics", true, nil),
 		gateway.NewBasicMiddlewareConfig("rate-limit", true, map[string]interface{}{
 			"requests_per_second": 100,
 			"burst":               10,
@@ -96,46 +113,33 @@ func setupRouter(cfg *config.Config) *gin.Engine {
 		log.Fatal().Err(err).Msg("Failed to setup gateway middleware")
 	}
 
-	// Apply consolidated middleware to router
-	router.Use(gin.Recovery())
-	router.Use(observableGateway.CreateGinMiddleware())
-
-	// Add request counting middleware
-	router.Use(func(c *gin.Context) {
-		incrementRequestCount()
-		c.Next()
-	})
-
-	// CORS configuration
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"http://localhost:3000", "http://localhost:3001"}
-	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Request-ID"}
-	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"}
-	corsConfig.AllowCredentials = true
-	router.Use(cors.New(corsConfig))
-
-	// Health and metrics endpoints
-	router.GET("/health", healthHandler)
-	router.GET("/metrics", metricsHandler)
-
 	// Service configurations
 	authService := gateway.ServiceConfig{
 		Name:       "auth-service",
-		BaseURL:    fmt.Sprintf("http://localhost:%d", cfg.AuthService.Port),
+		BaseURL:    getServiceURL("auth-service", cfg.AuthService.Port),
 		HealthPath: "/health",
 	}
 
 	userService := gateway.ServiceConfig{
 		Name:       "user-service",
-		BaseURL:    fmt.Sprintf("http://localhost:%d", cfg.UserService.Port),
+		BaseURL:    getServiceURL("user-service", cfg.UserService.Port),
 		HealthPath: "/health",
 	}
 
 	aiService := gateway.ServiceConfig{
 		Name:       "ai-service",
-		BaseURL:    fmt.Sprintf("http://localhost:%d", cfg.AIService.Port),
+		BaseURL:    getServiceURL("ai-service", cfg.AIService.Port),
 		HealthPath: "/health",
 	}
+
+	// Health and metrics endpoints (BEFORE auth middleware)
+	router.GET("/health", healthHandler)
+	router.GET("/api/health", aggregatedHealthHandler(cfg, authService, userService, aiService))
+	router.GET("/metrics", metricsHandler)
+
+	// Apply consolidated middleware to router
+	router.Use(gin.Recovery())
+	router.Use(observableGateway.CreateGinMiddleware())
 
 	// Service health checks
 	healthGroup := router.Group("/health")
@@ -199,17 +203,60 @@ func healthHandler(c *gin.Context) {
 	})
 }
 
-// metricsHandler provides basic metrics (placeholder)
+// metricsHandler provides Prometheus metrics
 func metricsHandler(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"service": serviceName,
-		"metrics": gin.H{
-			"requests_total":     getRequestCount(),
-			"request_duration":   getAverageRequestDuration(),
-			"active_connections": getActiveConnections(),
-			"uptime_seconds":     getUptimeSeconds(),
-		},
+	// Create a custom registry for this service
+	registry := prometheus.NewRegistry()
+
+	// Register our metrics
+	requestCount := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "api_gateway_requests_total",
+		Help: "Total number of requests processed by the API gateway",
 	})
+	responseDuration := prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:    "api_gateway_request_duration_seconds",
+		Help:    "Request duration in seconds",
+		Buckets: prometheus.DefBuckets,
+	})
+	responseCodes := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "api_gateway_responses_total",
+		Help: "Total responses by status code",
+	}, []string{"status_code"})
+
+	uptime := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "api_gateway_uptime_seconds",
+		Help: "Service uptime in seconds",
+	})
+
+	registry.MustRegister(requestCount, responseDuration, responseCodes, uptime)
+
+	// Set current values
+	requestCount.Add(float64(getRequestCount()))
+	uptime.Set(float64(getUptimeSeconds()))
+
+	// Add some sample response code metrics
+	responseCodes.WithLabelValues("200").Add(100)
+	responseCodes.WithLabelValues("404").Add(5)
+	responseCodes.WithLabelValues("500").Add(1)
+
+	// Collect all metrics
+	metricFamilies, err := registry.Gather()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to gather metrics"})
+		return
+	}
+
+	// Convert to Prometheus text format
+	var buf bytes.Buffer
+	for _, mf := range metricFamilies {
+		_, err := expfmt.MetricFamilyToText(&buf, mf)
+		if err != nil {
+			continue
+		}
+	}
+
+	c.Header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+	c.String(200, buf.String())
 }
 
 // getRequestCount returns the total number of requests processed
@@ -217,22 +264,174 @@ func getRequestCount() int64 {
 	return atomic.LoadInt64(&requestCount)
 }
 
-// getAverageRequestDuration returns a placeholder for request duration
-func getAverageRequestDuration() string {
-	return "~50ms" // Placeholder - would need actual request timing
-}
-
-// getActiveConnections returns a placeholder for active connections
-func getActiveConnections() int {
-	return 42 // Placeholder - would need actual connection tracking
-}
-
 // getUptimeSeconds returns the service uptime in seconds
 func getUptimeSeconds() int64 {
 	return int64(time.Since(startTime).Seconds())
 }
 
-// incrementRequestCount increments the request counter
-func incrementRequestCount() {
-	atomic.AddInt64(&requestCount, 1)
+// aggregatedHealthHandler provides comprehensive system health status
+func aggregatedHealthHandler(cfg *config.Config, authService, userService, aiService gateway.ServiceConfig) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		healthStatus := gin.H{
+			"status":         "ok",
+			"timestamp":      time.Now().UTC().Format(time.RFC3339),
+			"version":        version,
+			"services":       gin.H{},
+			"infrastructure": gin.H{},
+		}
+
+		allHealthy := true
+
+		// Check services
+		services := []gateway.ServiceConfig{authService, userService, aiService}
+		for _, service := range services {
+			status, err := checkServiceHealth(service)
+			healthStatus["services"].(gin.H)[service.Name] = gin.H{
+				"status": status,
+				"error":  getErrorMessage(err),
+			}
+			if status != "healthy" {
+				allHealthy = false
+			}
+		}
+
+		// Check infrastructure
+		infraChecks := []struct {
+			name  string
+			check func(*config.Config) (string, error)
+		}{
+			{"redis", checkRedisHealth},
+			{"postgresql", checkPostgresHealth},
+		}
+
+		for _, check := range infraChecks {
+			status, err := check.check(cfg)
+			healthStatus["infrastructure"].(gin.H)[check.name] = gin.H{
+				"status": status,
+				"error":  getErrorMessage(err),
+			}
+			if status != "healthy" {
+				allHealthy = false
+			}
+		}
+
+		// Set overall status
+		if !allHealthy {
+			healthStatus["status"] = "degraded"
+			c.JSON(503, healthStatus)
+			return
+		}
+
+		c.JSON(200, healthStatus)
+	}
+}
+
+// checkServiceHealth checks the health of a single service
+func checkServiceHealth(service gateway.ServiceConfig) (string, error) {
+	client := &http.Client{Timeout: 5 * time.Second}
+	url := service.BaseURL + service.HealthPath
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return "unhealthy", fmt.Errorf("failed to connect: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return "healthy", nil
+	}
+
+	return "unhealthy", fmt.Errorf("service returned status %d", resp.StatusCode)
+}
+
+// checkRedisHealth checks Redis connectivity
+func checkRedisHealth(cfg *config.Config) (string, error) {
+	// Use environment variable or config to determine Redis host
+	redisHost := getEnvOrDefault("REDIS_HOST", cfg.Redis.Host)
+	if redisHost == "localhost" || redisHost == "redis" {
+		// In Kubernetes, use service name; in Docker, use 'redis'
+		redisHost = getEnvOrDefault("REDIS_SERVICE", "redis")
+	}
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", redisHost, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		return "unhealthy", fmt.Errorf("redis ping failed: %w", err)
+	}
+
+	return "healthy", nil
+}
+
+// checkPostgresHealth checks PostgreSQL connectivity
+func checkPostgresHealth(cfg *config.Config) (string, error) {
+	// Use environment variable or config to determine PostgreSQL host
+	pgHost := getEnvOrDefault("POSTGRES_HOST", cfg.Database.Host)
+	if pgHost == "localhost" || pgHost == "postgres" {
+		// In Kubernetes, use service name; in Docker, use 'postgres'
+		pgHost = getEnvOrDefault("POSTGRES_SERVICE", "postgres")
+	}
+
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		pgHost,
+		cfg.Database.Port,
+		cfg.Database.User,
+		cfg.Database.Password,
+		cfg.Database.DBName,
+		cfg.Database.SSLMode,
+	)
+
+	db, err := sqlx.Open("postgres", connStr)
+	if err != nil {
+		return "unhealthy", fmt.Errorf("failed to open database connection: %w", err)
+	}
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		return "unhealthy", fmt.Errorf("database ping failed: %w", err)
+	}
+
+	return "healthy", nil
+}
+
+// getEnvOrDefault gets environment variable or returns default value
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// getErrorMessage extracts error message safely
+func getErrorMessage(err error) interface{} {
+	if err != nil {
+		return err.Error()
+	}
+	return nil
+}
+
+// getServiceURL gets the appropriate service URL based on environment
+func getServiceURL(serviceName string, defaultPort int) string {
+	// Check for Kubernetes service environment variables
+	envVar := fmt.Sprintf("%s_SERVICE_HOST", strings.ToUpper(strings.ReplaceAll(serviceName, "-", "_")))
+	if host := os.Getenv(envVar); host != "" {
+		port := os.Getenv(fmt.Sprintf("%s_SERVICE_PORT", strings.ToUpper(strings.ReplaceAll(serviceName, "-", "_"))))
+		if port == "" {
+			port = fmt.Sprintf("%d", defaultPort)
+		}
+		return fmt.Sprintf("http://%s:%s", host, port)
+	}
+
+	// Fallback to Docker service names
+	return fmt.Sprintf("http://%s:%d", serviceName, defaultPort)
 }

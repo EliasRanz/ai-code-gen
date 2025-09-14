@@ -4,6 +4,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -19,9 +20,12 @@ type PostgreSQLUserRepository struct {
 
 // NewPostgreSQLUserRepository creates a new PostgreSQL user repository
 func NewPostgreSQLUserRepository(db *gorm.DB) (*PostgreSQLUserRepository, error) {
-	// Auto-migrate the schema
-	if err := db.AutoMigrate(&UserModel{}); err != nil {
-		return nil, fmt.Errorf("failed to migrate schema: %w", err)
+	// Skip auto-migration in CI environment (database is pre-initialized)
+	if os.Getenv("ENVIRONMENT") != "ci" {
+		// Auto-migrate the schema
+		if err := db.AutoMigrate(&UserModel{}); err != nil {
+			return nil, fmt.Errorf("failed to migrate schema: %w", err)
+		}
 	}
 
 	return &PostgreSQLUserRepository{db: db}, nil

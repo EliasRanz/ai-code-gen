@@ -33,8 +33,33 @@ func NewAuthProxyMiddleware(authServiceURL string, authCache *cache.AuthCache) *
 	}
 }
 
+// isPublicEndpoint checks if the request path should skip authentication
+func (a *AuthProxyMiddleware) isPublicEndpoint(path string) bool {
+	publicPaths := []string{
+		"/health",
+		"/metrics",
+		"/api/auth/login",
+		"/api/auth/callback",
+		"/api/auth/refresh",
+	}
+
+	for _, publicPath := range publicPaths {
+		if path == publicPath {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Process implements middleware processing with auth validation
 func (a *AuthProxyMiddleware) Process(ctx Context, next Next) error {
+	// Skip authentication for public endpoints
+	requestPath := ctx.Request().URL.Path
+	if a.isPublicEndpoint(requestPath) {
+		return next()
+	}
+
 	token, err := a.extractBearerToken(ctx)
 	if err != nil {
 		return a.handleAuthError(ctx, http.StatusUnauthorized, err.Error())
