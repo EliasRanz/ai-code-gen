@@ -1,0 +1,67 @@
+#!/bin/bash
+# Script runner wrapper for organized scripts directory
+# Usage: ./scripts/run <category> <script> [args...]
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+show_help() {
+    echo "Script Runner - Organized Scripts Directory"
+    echo "=========================================="
+    echo ""
+    echo "Usage: $0 <category> <script> [args...]"
+    echo ""
+    echo "Categories:"
+    echo "  database     - Database setup and migrations"
+    echo "  development  - Development workflow scripts"
+    echo "  setup        - Environment setup scripts"
+    echo "  testing      - Testing and performance scripts"
+    echo "  utilities    - General utility scripts"
+    echo ""
+    echo "Examples:"
+    echo "  $0 development dev setup"
+    echo "  $0 testing test unit"
+    echo "  $0 setup setup-dev-db"
+    echo ""
+    echo "Or use Makefile targets (recommended):"
+    echo "  make setup    - Complete environment setup"
+    echo "  make dev      - Start development environment"
+    echo "  make test     - Run tests"
+    echo "  make build    - Build services"
+}
+
+if [ $# -lt 2 ]; then
+    show_help
+    exit 1
+fi
+
+CATEGORY="$1"
+SCRIPT="$2"
+shift 2
+
+SCRIPT_PATH="$SCRIPT_DIR/$CATEGORY/${SCRIPT}.sh"
+
+if [ ! -f "$SCRIPT_PATH" ]; then
+    echo -e "${RED}Error: Script not found: $SCRIPT_PATH${NC}"
+    echo ""
+    echo "Available scripts in category '$CATEGORY':"
+    if [ -d "$SCRIPT_DIR/$CATEGORY" ]; then
+        ls -1 "$SCRIPT_DIR/$CATEGORY"/*.sh 2>/dev/null | xargs -n1 basename | sed 's/\.sh$//' | sed 's/^/  - /'
+    else
+        echo "  Category '$CATEGORY' does not exist"
+    fi
+    exit 1
+fi
+
+echo -e "${BLUE}Running: $CATEGORY/$SCRIPT${NC}"
+echo "=========================================="
+
+# Execute the script with remaining arguments
+exec "$SCRIPT_PATH" "$@"
