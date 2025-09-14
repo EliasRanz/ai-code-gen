@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import ChatInterface from '@/components/ChatInterface'
-import PreviewPane from '@/components/PreviewPane'
+import ChatInterface from "@/components/ChatInterface";
+import PreviewPane from "@/components/PreviewPane";
 
 export default function GeneratePage() {
   return (
@@ -9,7 +9,9 @@ export default function GeneratePage() {
       {/* Chat Interface */}
       <div className="w-1/2 border-r">
         <ChatInterface
-          onPromptSubmit={(prompt: string) => console.log('Submit prompt:', prompt)}
+          onPromptSubmit={(prompt: string) =>
+            console.log("Submit prompt:", prompt)
+          }
           isGenerating={false}
           messages={[]}
         />
@@ -17,12 +19,8 @@ export default function GeneratePage() {
 
       {/* Preview Pane */}
       <div className="w-1/2">
-        <PreviewPane
-          generatedCode=""
-          isLoading={false}
-          language="tsx"
-        />
+        <PreviewPane generatedCode="" isLoading={false} language="tsx" />
       </div>
     </div>
-  )
+  );
 }

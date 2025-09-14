@@ -39,7 +39,9 @@ export default function SettingsPage() {
 
         {/* AI Preferences */}
         <div className="bg-white rounded-lg border p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">AI Preferences</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            AI Preferences
+          </h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -54,7 +56,9 @@ export default function SettingsPage() {
             <div>
               <label className="flex items-center">
                 <input type="checkbox" className="mr-2" />
-                <span className="text-sm text-gray-700">Enable streaming responses</span>
+                <span className="text-sm text-gray-700">
+                  Enable streaming responses
+                </span>
               </label>
             </div>
           </div>
@@ -68,5 +72,5 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

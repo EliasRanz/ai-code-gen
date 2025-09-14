@@ -1,40 +1,40 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Output configuration (moved from experimental in newer versions)
-  output: 'standalone',
-  
+  output: "standalone",
+
   // Environment variables
   env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY || '',
+    CUSTOM_KEY: process.env.CUSTOM_KEY || "",
   },
 
   // Image optimization configuration
   images: {
-    domains: ['localhost'],
-    unoptimized: process.env.NODE_ENV === 'development',
+    domains: ["localhost"],
+    unoptimized: process.env.NODE_ENV === "development",
   },
 
   // Security headers
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: "/(.*)",
         headers: [
           {
-            key: 'X-Frame-Options',
-            value: 'DENY',
+            key: "X-Frame-Options",
+            value: "DENY",
           },
           {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
+            key: "X-Content-Type-Options",
+            value: "nosniff",
           },
           {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
+            key: "Referrer-Policy",
+            value: "origin-when-cross-origin",
           },
           {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
           },
         ],
       },
@@ -65,8 +65,8 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: '/',
-        destination: '/home',
+        source: "/",
+        destination: "/home",
         permanent: false,
       },
     ];
@@ -76,8 +76,8 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/v1/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/:path*`,
+        source: "/api/v1/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/v1/:path*`,
       },
     ];
   },

@@ -1,16 +1,16 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import { signOut } from 'next-auth/react'
+import { useEffect } from "react";
+import { signOut } from "next-auth/react";
 
 export default function LogoutPage() {
   useEffect(() => {
     // Automatically sign out when this page loads
-    signOut({ 
-      callbackUrl: '/login?message=logged-out',
-      redirect: true 
-    })
-  }, [])
+    signOut({
+      callbackUrl: "/login?message=logged-out",
+      redirect: true,
+    });
+  }, []);
 
   return (
     <div className="text-center">
@@ -25,5 +25,5 @@ export default function LogoutPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -3,7 +3,10 @@ export default function LoginPage() {
     <div className="space-y-6">
       <form className="space-y-6">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700"
+          >
             Email address
           </label>
           <input
@@ -15,9 +18,12 @@ export default function LoginPage() {
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
-        
+
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-700"
+          >
             Password
           </label>
           <input
@@ -38,13 +44,19 @@ export default function LoginPage() {
               type="checkbox"
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+            <label
+              htmlFor="remember-me"
+              className="ml-2 block text-sm text-gray-900"
+            >
               Remember me
             </label>
           </div>
 
           <div className="text-sm">
-            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+            <a
+              href="#"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               Forgot your password?
             </a>
           </div>
@@ -62,12 +74,15 @@ export default function LoginPage() {
 
       <div className="text-center">
         <p className="text-sm text-gray-600">
-          Don't have an account?{' '}
-          <a href="/auth/register" className="font-medium text-blue-600 hover:text-blue-500">
+          Don't have an account?{" "}
+          <a
+            href="/auth/register"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
             Sign up
           </a>
         </p>
       </div>
     </div>
-  )
+  );
 }

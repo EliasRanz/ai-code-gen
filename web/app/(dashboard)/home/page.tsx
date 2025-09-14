@@ -4,29 +4,38 @@ export default function DashboardPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
         <p className="text-gray-600">
-          Welcome to the AI UI Generator. Start creating beautiful components with natural language.
+          Welcome to the AI UI Generator. Start creating beautiful components
+          with natural language.
         </p>
       </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg border">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Total Projects</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Total Projects
+          </h3>
           <p className="text-3xl font-bold text-blue-600">0</p>
         </div>
         <div className="bg-white p-6 rounded-lg border">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Components Generated</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Components Generated
+          </h3>
           <p className="text-3xl font-bold text-green-600">0</p>
         </div>
         <div className="bg-white p-6 rounded-lg border">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Active Sessions</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Active Sessions
+          </h3>
           <p className="text-3xl font-bold text-purple-600">0</p>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="bg-white p-6 rounded-lg border">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          Quick Actions
+        </h2>
         <div className="space-y-4">
           <a
             href="/dashboard/generate"
@@ -43,5 +52,5 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
