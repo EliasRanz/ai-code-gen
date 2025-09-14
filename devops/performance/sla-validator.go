@@ -71,15 +71,15 @@ func showUsage() {
 func showSLAOverview() {
 	fmt.Println("📊 SLA Configuration Overview")
 	fmt.Println("")
-	
+
 	// Show current environment detection
 	environment := detectEnvironment()
 	fmt.Printf("🌍 Detected Environment: %s\n", environment)
 	fmt.Println("")
-	
+
 	// Show SLA validation examples
 	demonstrateSLAValidation()
-	
+
 	// Show environment comparison
 	fmt.Println("\n" + strings.Repeat("-", 60))
 	compareEnvironmentSLAs()
@@ -88,9 +88,9 @@ func showSLAOverview() {
 func listAvailableSLAs() {
 	fmt.Println("📋 Available SLA Configurations:")
 	fmt.Println("")
-	
+
 	configs := utils.DefaultSLAConfigurations()
-	
+
 	// Group by environment
 	environments := map[string][]utils.SLAThresholds{
 		"production":  {},
@@ -98,16 +98,16 @@ func listAvailableSLAs() {
 		"development": {},
 		"testing":     {},
 	}
-	
+
 	for _, config := range configs {
 		environments[config.Environment] = append(environments[config.Environment], config)
 	}
-	
+
 	for env, configs := range environments {
 		if len(configs) == 0 {
 			continue
 		}
-		
+
 		fmt.Printf("🔹 %s Environment:\n", titleCase(env))
 		for _, config := range configs {
 			fmt.Printf("  📊 %s\n", config.ScenarioName)
@@ -123,10 +123,10 @@ func listAvailableSLAs() {
 func validateEnvironmentSLAs(environment string) {
 	fmt.Printf("🔍 Validating SLAs for %s environment\n", environment)
 	fmt.Println("")
-	
+
 	// Get baseline SLA for environment
 	sla := utils.GetSLAForScenario("baseline", environment)
-	
+
 	fmt.Printf("📊 %s SLA Thresholds:\n", sla.ScenarioName)
 	fmt.Printf("   P95 Latency: < %v\n", sla.P95Latency)
 	fmt.Printf("   P99 Latency: < %v\n", sla.P99Latency)
@@ -135,13 +135,13 @@ func validateEnvironmentSLAs(environment string) {
 	fmt.Printf("   Min Throughput: > %.0f req/s\n", sla.MinThroughputRPS)
 	fmt.Printf("   Max Memory: < %.0f MB\n", sla.MaxMemoryUsageMB)
 	fmt.Println("")
-	
+
 	// Simulate validation with hypothetical performance data
 	testReport := generateTestPerformanceReport(environment)
 	result := utils.ValidatePerformanceReport(testReport, sla)
-	
+
 	fmt.Printf("✅ Validation Result: %s\n", result.Summary)
-	
+
 	if len(result.Violations) > 0 {
 		fmt.Println("\n📋 SLA Violations Analysis:")
 		for _, violation := range result.Violations {
@@ -150,12 +150,12 @@ func validateEnvironmentSLAs(environment string) {
 				utils.SLAWarn: "⚠️",
 				utils.SLAFail: "❌",
 			}
-			
+
 			icon := statusIcon[violation.Level]
-			fmt.Printf("   %s %s: Expected %s, Simulated %s\n", 
+			fmt.Printf("   %s %s: Expected %s, Simulated %s\n",
 				icon, violation.Metric, violation.Expected, violation.Actual)
 		}
-		
+
 		// Show recommendations
 		recommendations := utils.SLARecommendations(result.Violations)
 		if len(recommendations) > 0 {
@@ -170,22 +170,22 @@ func validateEnvironmentSLAs(environment string) {
 func compareEnvironmentSLAs() {
 	fmt.Println("🔄 SLA Comparison Across Environments")
 	fmt.Println("")
-	
+
 	environments := []string{"production", "staging", "development"}
-	
+
 	fmt.Printf("%-20s %-15s %-15s %-15s %-15s\n", "Environment", "P95 Latency", "Cache Hit Rate", "Error Rate", "Throughput")
 	fmt.Println(strings.Repeat("-", 80))
-	
+
 	for _, env := range environments {
 		sla := utils.GetSLAForScenario("baseline", env)
-		fmt.Printf("%-20s %-15v %-15.1f%% %-15.3f%% %-15.0f req/s\n", 
-			titleCase(env), 
-			sla.P95Latency, 
+		fmt.Printf("%-20s %-15v %-15.1f%% %-15.3f%% %-15.0f req/s\n",
+			titleCase(env),
+			sla.P95Latency,
 			sla.MinCacheHitRate*100,
 			sla.MaxErrorRate*100,
 			sla.MinThroughputRPS)
 	}
-	
+
 	fmt.Println("")
 	fmt.Println("📈 Observations:")
 	fmt.Println("   • Production has strictest latency requirements (5ms vs 20ms dev)")
@@ -197,13 +197,13 @@ func compareEnvironmentSLAs() {
 func recommendSLAConfiguration(scenario string) {
 	fmt.Printf("💡 SLA Recommendations for '%s' scenario\n", scenario)
 	fmt.Println("")
-	
+
 	// Get SLA configurations for this scenario across environments
 	environments := []string{"production", "staging", "development"}
-	
+
 	fmt.Printf("Scenario: %s\n", scenario)
 	fmt.Println(strings.Repeat("-", 40))
-	
+
 	for _, env := range environments {
 		sla := utils.GetSLAForScenario(scenario, env)
 		fmt.Printf("\n🔹 %s Environment:\n", titleCase(env))
@@ -213,7 +213,7 @@ func recommendSLAConfiguration(scenario string) {
 		fmt.Printf("   Error Rate: < %.3f%%\n", sla.MaxErrorRate*100)
 		fmt.Printf("   Min Throughput: > %.0f req/s\n", sla.MinThroughputRPS)
 	}
-	
+
 	fmt.Println("\n🎯 Implementation Guidance:")
 	fmt.Println("   1. Start with development SLAs for initial testing")
 	fmt.Println("   2. Validate with staging SLAs before production deployment")
@@ -223,7 +223,7 @@ func recommendSLAConfiguration(scenario string) {
 
 func demonstrateSLAValidation() {
 	fmt.Println("🧪 SLA Validation Examples:")
-	
+
 	examples := []struct {
 		name   string
 		status string
@@ -233,7 +233,7 @@ func demonstrateSLAValidation() {
 		{"System with warnings", "Performance degradation detected", "⚠️"},
 		{"System with failures", "Critical SLA violations", "❌"},
 	}
-	
+
 	for _, example := range examples {
 		fmt.Printf("\n%s %s: %s\n", example.icon, example.name, example.status)
 	}
@@ -268,14 +268,14 @@ func getUseCaseDescription(environment string) string {
 func generateTestPerformanceReport(environment string) utils.PerformanceReport {
 	// Generate realistic test data based on environment
 	var report utils.PerformanceReport
-	
+
 	switch environment {
 	case "production":
 		report = utils.PerformanceReport{
 			TestName:      "Production Baseline Simulation",
 			TotalRequests: 10000,
 			ThroughputRPS: 750,
-			CacheHitRate:  0.87, // 87%
+			CacheHitRate:  0.87,   // 87%
 			ErrorRate:     0.0008, // 0.08%
 			Percentiles: utils.PerformancePercentiles{
 				P95: 4 * time.Millisecond,
@@ -289,7 +289,7 @@ func generateTestPerformanceReport(environment string) utils.PerformanceReport {
 			TestName:      "Staging Environment Simulation",
 			TotalRequests: 5000,
 			ThroughputRPS: 400,
-			CacheHitRate:  0.78, // 78%
+			CacheHitRate:  0.78,  // 78%
 			ErrorRate:     0.005, // 0.5%
 			Percentiles: utils.PerformancePercentiles{
 				P95: 8 * time.Millisecond,
@@ -313,6 +313,6 @@ func generateTestPerformanceReport(environment string) utils.PerformanceReport {
 			Timestamp:     time.Now(),
 		}
 	}
-	
+
 	return report
 }

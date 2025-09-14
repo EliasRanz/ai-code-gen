@@ -265,7 +265,7 @@ func (m *Monitor) GenerateReport(ctx context.Context, duration time.Duration) er
 				continue
 			}
 			metrics = append(metrics, metric)
-			
+
 			if m.verbose {
 				elapsed := time.Since(startTime)
 				fmt.Printf("Collected sample %d (%.1fs elapsed)\n", len(metrics), elapsed.Seconds())
@@ -281,7 +281,7 @@ func (m *Monitor) saveReport(metrics []*RedisMetrics, duration time.Duration) er
 	}
 
 	filename := fmt.Sprintf("redis_monitor_report_%s.json", time.Now().Format("20060102_150405"))
-	
+
 	report := struct {
 		GeneratedAt time.Time       `json:"generated_at"`
 		Duration    string          `json:"duration"`
@@ -310,7 +310,7 @@ func (m *Monitor) saveReport(metrics []*RedisMetrics, duration time.Duration) er
 
 	fmt.Printf("✅ Report saved to: %s\n", filename)
 	fmt.Printf("📊 Collected %d samples over %v\n", len(metrics), duration)
-	
+
 	return nil
 }
 
@@ -340,16 +340,16 @@ func (m *Monitor) calculateSummary(metrics []*RedisMetrics) interface{} {
 	}
 
 	count := float64(len(metrics))
-	
+
 	return map[string]interface{}{
-		"avg_hit_rate":        totalHitRate / count,
+		"avg_hit_rate":         totalHitRate / count,
 		"avg_commands_per_sec": totalCmdPerSec / count,
-		"avg_memory_mb":       (totalMemory / count) / 1024 / 1024,
-		"max_clients":         maxClients,
-		"max_keys":           maxKeys,
-		"max_memory_mb":      float64(maxMemory) / 1024 / 1024,
-		"first_sample":       metrics[0].Timestamp,
-		"last_sample":        metrics[len(metrics)-1].Timestamp,
+		"avg_memory_mb":        (totalMemory / count) / 1024 / 1024,
+		"max_clients":          maxClients,
+		"max_keys":             maxKeys,
+		"max_memory_mb":        float64(maxMemory) / 1024 / 1024,
+		"first_sample":         metrics[0].Timestamp,
+		"last_sample":          metrics[len(metrics)-1].Timestamp,
 	}
 }
 
