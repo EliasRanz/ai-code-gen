@@ -155,7 +155,10 @@ func (h *Handler) Stream(c *gin.Context) {
 	// Stream the response
 	for chunk := range responseChannel {
 		if chunk != "" {
-			c.Writer.WriteString("data: " + chunk + "\n\n")
+			if _, err := c.Writer.WriteString("data: " + chunk + "\n\n"); err != nil {
+				// Log error and break on write failure
+				break
+			}
 			c.Writer.Flush()
 		}
 	}

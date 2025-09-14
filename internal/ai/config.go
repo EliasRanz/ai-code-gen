@@ -215,7 +215,11 @@ func NewAIConfigManager(provider config.ConfigProvider) *AIConfigManager {
 
 	// Add validation rules for AI configuration
 	validator := config.NewConfigValidator()
-	addAIValidationRules(validator)
+	if err := addAIValidationRules(validator); err != nil {
+		// Log error and continue with degraded validation
+		// In production, proper logging framework would be used
+		fmt.Printf("Warning: Failed to add AI validation rules: %v\n", err)
+	}
 
 	return &AIConfigManager{
 		manager: manager,
@@ -356,56 +360,72 @@ func (m *AIConfigManager) applyDefaults() {
 }
 
 // addAIValidationRules adds validation rules for AI configuration
-func addAIValidationRules(validator config.ConfigValidator) {
+func addAIValidationRules(validator config.ConfigValidator) error {
 	// Service port validation
-	validator.AddRule(config.ValidationRule{
+	if err := validator.AddRule(config.ValidationRule{
 		Key:      "service.port",
 		Type:     "int",
 		MinValue: 1,
 		MaxValue: 65535,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to add service.port validation rule: %w", err)
+	}
 
 	// LLM validation
-	validator.AddRule(config.ValidationRule{
+	if err := validator.AddRule(config.ValidationRule{
 		Key:      "llm.default_provider",
 		Required: true,
 		Type:     "string",
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to add llm.default_provider validation rule: %w", err)
+	}
 
-	validator.AddRule(config.ValidationRule{
+	if err := validator.AddRule(config.ValidationRule{
 		Key:      "llm.max_prompt_length",
 		Type:     "int",
 		MinValue: 100,
 		MaxValue: 100000,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to add llm.max_prompt_length validation rule: %w", err)
+	}
 
-	validator.AddRule(config.ValidationRule{
+	if err := validator.AddRule(config.ValidationRule{
 		Key:      "llm.default_temperature",
 		Type:     "float",
 		MinValue: 0.0,
 		MaxValue: 2.0,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to add llm.default_temperature validation rule: %w", err)
+	}
 
 	// Rate limiting validation
-	validator.AddRule(config.ValidationRule{
+	if err := validator.AddRule(config.ValidationRule{
 		Key:      "rate_limit.requests_per_minute",
 		Type:     "int",
 		MinValue: 1,
 		MaxValue: 10000,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to add rate_limit.requests_per_minute validation rule: %w", err)
+	}
 
-	validator.AddRule(config.ValidationRule{
+	if err := validator.AddRule(config.ValidationRule{
 		Key:      "rate_limit.burst_size",
 		Type:     "int",
 		MinValue: 1,
 		MaxValue: 1000,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to add rate_limit.burst_size validation rule: %w", err)
+	}
 
 	// Quota validation
-	validator.AddRule(config.ValidationRule{
+	if err := validator.AddRule(config.ValidationRule{
 		Key:      "quota.default_daily_limit",
 		Type:     "int",
 		MinValue: 1,
 		MaxValue: 100000,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to add quota.default_daily_limit validation rule: %w", err)
+	}
+
+	return nil
 }
